@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ATLAS</title>
+<style>
+:root{
+  --bg:#02060a;
+  --bg2:#04101a;
+  --core:#1fe88a;       /* atlas green */
+  --core-soft:#0aff9d;
+  --core-dim:#0c5c42;
+  --text:#d4fff0;
+  --muted:#5e8c7d;
+  --user:#0e2a22;
+  --panel:rgba(10,30,24,.55);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:'SF Mono',ui-monospace,'Roboto Mono',Menlo,monospace;
+  -webkit-user-select:none;user-select:none;}
+body{display:flex;flex-direction:column;
+  background:radial-gradient(ellipse at 50% 30%,#06141d 0%,#02060a 70%);}
+
+/* ── Top status bar ── */
+#topbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:max(14px,env(safe-area-inset-top)) 18px 10px;font-size:11px;letter-spacing:2px;
+  color:var(--muted);text-transform:uppercase;}
+#brand{display:flex;align-items:center;gap:9px;color:var(--core);font-weight:600;letter-spacing:5px;}
+#brand .dot{width:7px;height:7px;border-radius:50%;background:var(--core);
+  box-shadow:0 0 10px var(--core);animation:blink 2.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#model-tag{font-size:10px;color:var(--core-soft);border:1px solid var(--core-dim);
+  padding:3px 8px;border-radius:20px;letter-spacing:1px;min-width:64px;text-align:center;}
+
+/* ── Orb stage ── */
+#stage{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  height:34vh;position:relative;}
+#orb-wrap{position:relative;width:200px;height:200px;display:flex;align-items:center;justify-content:center;}
+canvas#orb{position:absolute;inset:0;width:100%;height:100%;}
+#status-text{position:absolute;bottom:-6px;font-size:10px;letter-spacing:3px;
+  color:var(--muted);text-transform:uppercase;white-space:nowrap;}
+
+/* ── Transcript ── */
+#log{flex:1 1 auto;overflow-y:auto;padding:6px 16px 12px;display:flex;flex-direction:column;gap:14px;
+  -webkit-overflow-scrolling:touch;scroll-behavior:smooth;}
+.msg{max-width:88%;font-size:14px;line-height:1.55;white-space:pre-wrap;word-break:break-word;
+  animation:rise .3s ease both;}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.a{align-self:flex-start;color:var(--text);}
+.msg.a .who{color:var(--core);font-size:10px;letter-spacing:3px;display:block;margin-bottom:4px;text-transform:uppercase;}
+.msg.u{align-self:flex-end;background:var(--user);border:1px solid #14392e;
+  padding:10px 14px;border-radius:16px 16px 4px 16px;color:#aef5da;}
+.msg.sys{align-self:center;color:var(--muted);font-size:11px;letter-spacing:1px;text-align:center;
+  border:1px dashed #16382c;border-radius:10px;padding:8px 12px;max-width:92%;}
+/* code blocks */
+pre{background:#020a09;border:1px solid #123b2c;border-radius:12px;padding:12px 12px 38px;
+  overflow-x:auto;margin:8px 0;position:relative;font-size:12.5px;line-height:1.5;color:#9affd5;}
+pre .copy{position:absolute;bottom:8px;right:8px;background:var(--core-dim);color:#d4fff0;
+  border:none;border-radius:7px;padding:5px 12px;font-size:11px;letter-spacing:1px;cursor:pointer;
+  font-family:inherit;text-transform:uppercase;}
+pre .copy:active{background:var(--core);color:#012}
+code:not(pre code){background:#06170f;border:1px solid #16382c;border-radius:5px;padding:1px 6px;color:#7dffc0;font-size:12.5px;}
+.typing{display:inline-flex;gap:5px;align-items:center}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--core);display:inline-block;
+  animation:td 1s infinite}
+.typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+@keyframes td{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+
+/* ── Control deck ── */
+#deck{flex:0 0 auto;padding:10px 16px max(16px,env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:10px;
+  background:linear-gradient(to top,#04101a 60%,transparent);}
+#inputrow{display:flex;gap:9px;align-items:flex-end;}
+#field{flex:1;background:var(--panel);border:1px solid #15463400;border:1px solid #154634;
+  border-radius:18px;color:var(--text);font-family:inherit;font-size:14px;padding:12px 14px;
+  resize:none;max-height:120px;outline:none;line-height:1.4;}
+#field::placeholder{color:#3c6657;}
+#field:focus{border-color:var(--core-dim);}
+.btn{flex:0 0 auto;width:48px;height:48px;border-radius:50%;border:1px solid #154634;
+  background:var(--panel);color:var(--core);font-size:20px;display:flex;align-items:center;
+  justify-content:center;cursor:pointer;transition:transform .12s,background .2s;}
+.btn:active{transform:scale(.9);}
+.btn.live{background:var(--core);color:#021;box-shadow:0 0 18px var(--core);}
+#mic.listening{animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 18px var(--core)}50%{box-shadow:0 0 30px var(--core),0 0 50px var(--core)}}
+#toolsrow{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:11px;}
+.toggle{display:flex;align-items:center;gap:6px;color:var(--muted);letter-spacing:1px;cursor:pointer;
+  border:1px solid #133a2c;border-radius:20px;padding:6px 11px;text-transform:uppercase;}
+.toggle.on{color:var(--core);border-color:var(--core-dim);background:rgba(31,232,138,.07);}
+.toggle .sw{width:8px;height:8px;border-radius:50%;background:#2c4d40;}
+.toggle.on .sw{background:var(--core);box-shadow:0 0 8px var(--core);}
+
+/* ── Setup screen ── */
+#setup{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 35%,#06141d,#01040700 70%),var(--bg);
+  z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px;text-align:center;gap:18px;}
+#setup h1{font-size:46px;letter-spacing:14px;color:var(--core);font-weight:700;
+  text-shadow:0 0 30px rgba(31,232,138,.5);}
+#setup p{color:var(--muted);font-size:12.5px;line-height:1.7;max-width:330px;letter-spacing:.5px;}
+#setup input{width:100%;max-width:340px;background:var(--panel);border:1px solid #154634;border-radius:14px;
+  color:var(--text);font-family:inherit;font-size:13px;padding:14px;outline:none;text-align:center;}
+#setup button{background:var(--core);color:#021;border:none;border-radius:14px;font-family:inherit;
+  font-weight:700;letter-spacing:3px;padding:14px 34px;font-size:13px;cursor:pointer;text-transform:uppercase;
+  box-shadow:0 0 24px rgba(31,232,138,.4);}
+#setup .err{color:#ff6b6b;font-size:11.5px;min-height:14px;}
+#setup .key-note{font-size:10.5px;color:#3c6657;max-width:330px;}
+/* ── KID MODE ── */
+#kidmode{position:fixed;inset:0;z-index:60;overflow-y:auto;
+  background:linear-gradient(160deg,#1a0e3d 0%,#2d1b69 40%,#0e2a5e 100%);
+  font-family:'Comic Sans MS','Chalkboard SE',ui-rounded,system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none;padding:max(24px,env(safe-area-inset-top)) 20px 40px;
+  display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;color:#fff;}
+.kid-title{font-size:34px;font-weight:800;margin-top:10px;
+  text-shadow:0 3px 0 rgba(0,0,0,.2);letter-spacing:1px;}
+.kid-title.small{font-size:26px;}
+.kid-sub{font-size:16px;color:#ffe9a8;margin-bottom:8px;}
+.kid-big{width:100%;max-width:420px;font-family:inherit;font-size:21px;font-weight:800;
+  border:none;border-radius:22px;padding:20px;cursor:pointer;color:#23104a;
+  background:linear-gradient(180deg,#ffd84d,#ffb028);box-shadow:0 6px 0 #c9821a,0 10px 18px rgba(0,0,0,.3);
+  transition:transform .08s;}
+.kid-big:active{transform:translateY(4px);box-shadow:0 2px 0 #c9821a;}
+.kid-big.alt{background:linear-gradient(180deg,#7be0ff,#3aa8e0);color:#06283d;
+  box-shadow:0 6px 0 #2479ad,0 10px 18px rgba(0,0,0,.3);}
+.kid-big.alt:active{box-shadow:0 2px 0 #2479ad;}
+.kid-row{display:flex;gap:12px;width:100%;max-width:420px;}
+.kid-row .kid-big{font-size:18px;padding:16px;}
+.kid-exit{margin-top:30px;font-size:13px;color:#b9a8e8;padding:14px;border:2px dashed #5a4a99;
+  border-radius:16px;cursor:pointer;}
+.kid-label{font-size:15px;font-weight:700;color:#ffe9a8;align-self:flex-start;margin:6px 0 -4px;
+  width:100%;max-width:420px;}
+.kid-input{width:100%;max-width:420px;font-family:inherit;font-size:18px;padding:14px;
+  border:3px solid #ffd84d;border-radius:16px;background:rgba(255,255,255,.95);color:#23104a;outline:none;}
+#kid-themes{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:420px;}
+.kid-theme{width:46px;height:46px;border-radius:50%;border:4px solid rgba(255,255,255,.4);cursor:pointer;}
+.kid-theme.sel{border-color:#fff;transform:scale(1.15);}
+#kid-qlist{width:100%;max-width:420px;display:flex;flex-direction:column;gap:12px;}
+.kid-q{background:rgba(255,255,255,.12);border-radius:16px;padding:14px;text-align:left;}
+.kid-q .qn{font-weight:800;color:#ffe9a8;font-size:14px;margin-bottom:6px;}
+.kid-q input{width:100%;font-family:inherit;font-size:16px;padding:10px;margin:4px 0;
+  border:2px solid rgba(255,255,255,.3);border-radius:12px;background:rgba(255,255,255,.95);color:#23104a;outline:none;}
+.kid-q .ans-row{display:flex;align-items:center;gap:8px;}
+.kid-q .ans-row input[type=radio]{width:22px;height:22px;flex:0 0 auto;}
+.kid-q .del{background:#ff5b7a;color:#fff;border:none;border-radius:10px;padding:6px 12px;
+  font-family:inherit;font-weight:700;cursor:pointer;margin-top:6px;}
+.kid-add,.kid-help{width:100%;max-width:420px;font-family:inherit;font-size:16px;font-weight:700;
+  border:none;border-radius:16px;padding:14px;cursor:pointer;}
+.kid-add{background:#5be584;color:#063d1a;box-shadow:0 4px 0 #2e9c53;}
+.kid-add:active{transform:translateY(3px);box-shadow:0 1px 0 #2e9c53;}
+.kid-help{background:#c89bff;color:#2d0e54;box-shadow:0 4px 0 #8a5bd0;}
+.kid-help:active{transform:translateY(3px);box-shadow:0 1px 0 #8a5bd0;}
+.kid-help:disabled{opacity:.5;}
+/* player */
+#kid-play-area{width:100%;max-width:460px;display:flex;flex-direction:column;gap:16px;align-items:center;}
+.kid-pq{font-size:24px;font-weight:800;margin:10px 0;text-shadow:0 2px 0 rgba(0,0,0,.2);}
+.kid-opt{width:100%;font-family:inherit;font-size:19px;font-weight:700;border:none;border-radius:18px;
+  padding:18px;cursor:pointer;background:rgba(255,255,255,.95);color:#23104a;box-shadow:0 5px 0 rgba(0,0,0,.25);}
+.kid-opt:active{transform:translateY(3px);}
+.kid-opt.right{background:#5be584;color:#063d1a;}
+.kid-opt.wrong{background:#ff5b7a;color:#fff;}
+.kid-score{font-size:30px;font-weight:800;}
+.kid-progress{font-size:14px;color:#ffe9a8;}
+/* game picker cards */
+.kid-card{width:100%;max-width:420px;display:flex;align-items:center;gap:14px;font-family:inherit;
+  border:none;border-radius:22px;padding:18px;cursor:pointer;text-align:left;color:#fff;
+  box-shadow:0 6px 0 rgba(0,0,0,.3),0 10px 18px rgba(0,0,0,.3);transition:transform .08s;}
+.kid-card:active{transform:translateY(4px);}
+.kid-card .ic{font-size:42px;flex:0 0 auto;}
+.kid-card .cardtxt{display:flex;flex-direction:column;}
+.kid-card .cardtxt b{font-size:21px;font-weight:800;}
+.kid-card .cardtxt i{font-size:14px;font-style:normal;opacity:.9;}
+.kid-card.creature{background:linear-gradient(135deg,#ff6b9d,#c2185b);}
+.kid-card.world{background:linear-gradient(135deg,#5be584,#1b8a4a);}
+.kid-card.story{background:linear-gradient(135deg,#7be0ff,#1976c2);}
+.kid-card.quiz{background:linear-gradient(135deg,#ffd84d,#f57f17);color:#3a2400;}
+.game-area{width:100%;max-width:460px;display:flex;flex-direction:column;gap:12px;align-items:center;}
+/* creature cards */
+.crt{background:rgba(255,255,255,.14);border-radius:18px;padding:14px;width:100%;text-align:center;}
+.crt .face{font-size:50px;}
+.crt .nm{font-weight:800;font-size:18px;margin:4px 0;}
+.crt .ty{font-size:13px;color:#ffe9a8;}
+.crt .hpbar{height:14px;border-radius:8px;background:rgba(0,0,0,.3);overflow:hidden;margin-top:8px;}
+.crt .hpfill{height:100%;background:#5be584;transition:width .4s;}
+.emoji-pick{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.emoji-pick span{font-size:30px;padding:6px;border-radius:12px;cursor:pointer;border:3px solid transparent;}
+.emoji-pick span.sel{border-color:#fff;background:rgba(255,255,255,.2);}
+/* world grid */
+#world-grid{display:grid;gap:2px;background:rgba(0,0,0,.25);padding:6px;border-radius:12px;touch-action:manipulation;}
+.world-cell{aspect-ratio:1;background:#8fd98f;border-radius:4px;display:flex;align-items:center;
+  justify-content:center;font-size:min(6vw,26px);cursor:pointer;}
+.palette{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
+.palette span{font-size:26px;padding:6px 8px;border-radius:12px;cursor:pointer;border:3px solid transparent;background:rgba(255,255,255,.12);}
+.palette span.sel{border-color:#fff;}
+.hidden{display:none!important;}
+::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+
+<!-- SETUP / KEY ENTRY -->
+<div id="setup">
+  <h1>ATLAS</h1>
+  <p>Your private AI. Add your Anthropic key to bring me online. It stays on this device only — never uploaded, never shared.</p>
+  <input id="keyin" type="password" placeholder="sk-ant-..." autocomplete="off" autocapitalize="off" spellcheck="false">
+  <div class="err" id="keyerr"></div>
+  <button id="keygo">Bring Atlas Online</button>
+  <p class="key-note">Get a key at platform.claude.com → API keys. Charges go to your own Anthropic credit (a few pennies per chat).</p>
+</div>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="brand"><span class="dot"></span>ATLAS</div>
+  <div id="model-tag">STANDBY</div>
+</div>
+
+<!-- ORB -->
+<div id="stage">
+  <div id="orb-wrap">
+    <canvas id="orb"></canvas>
+    <div id="status-text">tap to wake</div>
+  </div>
+</div>
+
+<!-- TRANSCRIPT -->
+<div id="log"></div>
+
+<!-- CONTROL DECK -->
+<div id="deck">
+  <div id="inputrow">
+    <button class="btn" id="attach" title="Attach">📎</button>
+    <textarea id="field" rows="1" placeholder="Ask Atlas, or say his name…"></textarea>
+    <button class="btn" id="mic" title="Talk">🎙️</button>
+    <button class="btn" id="send" title="Send">▲</button>
+  </div>
+  <input id="fileinput" type="file" accept="image/*,application/pdf" multiple style="display:none">
+  <div id="chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+  <div id="toolsrow">
+    <div class="toggle on" id="wake-toggle"><span class="sw"></span>Wake word</div>
+    <div class="toggle on" id="voice-toggle"><span class="sw"></span>Voice</div>
+    <div class="toggle" id="mentor-toggle"><span class="sw"></span>Mentor</div>
+    <div class="toggle" id="kid-toggle"><span class="sw"></span>Kid</div>
+  </div>
+</div>
+
+<!-- ════════ KID MODE ════════ -->
+<div id="kidmode" class="hidden">
+  <div id="kid-home">
+    <div class="kid-title">🎮 Bea's Game Maker</div>
+    <p class="kid-sub">Pick a game to make!</p>
+    <button class="kid-card creature" id="pick-creature"><span class="ic">🐉</span><span class="cardtxt"><b>Creature Collector</b><i>Make creatures & battle!</i></span></button>
+    <button class="kid-card world" id="pick-world"><span class="ic">🏠</span><span class="cardtxt"><b>My Little World</b><i>Build your own world!</i></span></button>
+    <button class="kid-card story" id="pick-story"><span class="ic">📖</span><span class="cardtxt"><b>Adventure Maker</b><i>Make a story adventure!</i></span></button>
+    <button class="kid-card quiz" id="pick-quiz"><span class="ic">❓</span><span class="cardtxt"><b>Quiz Game</b><i>Make fun questions!</i></span></button>
+    <div class="kid-exit" id="kid-exit-hint">Ask a grown-up to hold this to leave 🔒</div>
+  </div>
+
+  <!-- QUIZ BUILDER -->
+  <div id="kid-build" class="hidden">
+    <div class="kid-title small">✏️ Build Your Quiz</div>
+    <label class="kid-label">What's your quiz called?</label>
+    <input id="kid-quizname" class="kid-input" placeholder="e.g. Amazing Animals" maxlength="40">
+    <label class="kid-label">Pick a colour theme</label>
+    <div id="kid-themes"></div>
+    <div id="kid-qlist"></div>
+    <button class="kid-add" id="kid-addq">➕ Add a Question</button>
+    <button class="kid-help" id="kid-helpq">💡 Help me think of a question!</button>
+    <div class="kid-row">
+      <button class="kid-big alt" id="kid-back1">← Back</button>
+      <button class="kid-big" id="kid-saveplay">💾 Save & Play</button>
+    </div>
+  </div>
+
+  <!-- QUIZ PLAYER -->
+  <div id="kid-play" class="hidden">
+    <div id="kid-play-area"></div>
+  </div>
+
+  <!-- CREATURE COLLECTOR -->
+  <div id="kid-creature" class="hidden"><div class="game-area" id="creature-area"></div></div>
+  <!-- MY LITTLE WORLD -->
+  <div id="kid-world" class="hidden"><div class="game-area" id="world-area"></div></div>
+  <!-- ADVENTURE MAKER -->
+  <div id="kid-story" class="hidden"><div class="game-area" id="story-area"></div></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  ATLAS  ·  futuristic personal AI
+// ════════════════════════════════════════════════════════
+// Global safety net: show real errors instead of a blank screen
+function showErr(label, e){
+  try{
+    const log = document.getElementById('log');
+    if(!log) return;
+    const d=document.createElement('div'); d.className='msg sys';
+    let detail = e ? ((e.name||'')+' — '+(e.message||e)) : 'unknown';
+    d.textContent=label+': '+detail;
+    log.appendChild(d);
+  }catch(_){}
+}
+window.addEventListener('error', ev=>{ showErr('Error', ev.error || ev.message); });
+window.addEventListener('unhandledrejection', ev=>{ showErr('Promise error', ev.reason); });
+const $ = id => document.getElementById(id);
+const log = $('log');
+const KEY_STORE = 'atlas-key';
+const HIST_STORE = 'atlas-hist';
+
+let API_KEY = localStorage.getItem(KEY_STORE) || '';
+let history = [];
+try { history = JSON.parse(localStorage.getItem(HIST_STORE)||'[]'); } catch(e){ history=[]; }
+
+let settings = {
+  wake: true, voice: true, mentor: false,
+};
+
+// ── State ──
+let orbState = 'idle';   // idle | listening | thinking | speaking
+let speakingLevel = 0;
+let lastInputWasVoice = false;   // Atlas only speaks back when YOU spoke
+let pendingFiles = [];           // files staged to send with next message
+
+// ════════════════════════════════════════════════════════
+//  SETUP / KEY
+// ════════════════════════════════════════════════════════
+function showApp(){
+  $('setup').classList.add('hidden');
+  if (history.length) {
+    history.forEach(m=> addMsg(m.role==='user'?'u':'a', m.text, false));
+  } else {
+    addMsg('sys','ATLAS online. Tap the orb or mic to talk, or just type. Say "Atlas" to wake me.');
+  }
+}
+if (API_KEY) {
+  try { showApp(); }
+  catch(err){
+    const log=$('log');
+    if(log){ const d=document.createElement('div'); d.className='msg sys';
+      d.textContent='showApp failed: '+(err&&err.name)+' — '+(err&&err.message); log.appendChild(d); }
+  }
+}
+
+$('keygo').onclick = ()=>{
+  const k = $('keyin').value.trim();
+  if (!k.startsWith('sk-ant-')) { $('keyerr').textContent='That doesn\u2019t look like an Anthropic key.'; return; }
+  API_KEY = k;
+  localStorage.setItem(KEY_STORE, k);
+  showApp();
+};
+
+// ════════════════════════════════════════════════════════
+//  MODEL AUTO-ROUTER
+//  Reads the request and picks the smartest *necessary* model.
+// ════════════════════════════════════════════════════════
+const MODELS = {
+  haiku:  'claude-haiku-4-5-20251001',
+  sonnet: 'claude-sonnet-4-6',
+  opus:   'claude-opus-4-8',
+};
+function pickModel(text){
+  const t = text.toLowerCase();
+  // Heavy coding / reasoning → Opus
+  const heavy = /\b(code|coding|function|debug|bug|refactor|algorithm|build (me )?an?|write (a )?(script|program|app|component|class)|api|regex|sql|python|javascript|react|html|css|node|architecture|design pattern|optimi[sz]e|fix this|error|stack trace|compile|typescript|c\+\+|rust|why (doesn'?t|won'?t|isn'?t)|explain (this )?code|review (my )?code)\b/;
+  // Medium reasoning / longer thinking → Sonnet
+  const medium = /\b(explain|how (do|does|can|would)|why|compare|plan|strategy|summari[sz]e|analy[sz]e|draft|write|translate|teach|step by step|pros and cons|difference between)\b/;
+  if (heavy.test(t) || text.length > 600) return 'opus';
+  if (medium.test(t)) return 'sonnet';
+  return 'haiku';
+}
+const MODEL_LABEL = { haiku:'HAIKU', sonnet:'SONNET', opus:'OPUS' };
+
+// ════════════════════════════════════════════════════════
+//  SYSTEM PROMPT  (mentor brain)
+// ════════════════════════════════════════════════════════
+function systemPrompt(){
+  let base = `You are ATLAS — a sharp, futuristic personal AI assistant in the spirit of a calm British operations AI (think JARVIS). You speak concisely and with quiet confidence. You are exceptional at coding (give clean, correct, well-explained code) and broadly knowledgeable. Address the user naturally. Keep spoken-style answers tight; expand when the task genuinely needs depth. When you give code, use fenced code blocks.`;
+  if (settings.mentor){
+    base += ` MENTOR MODE: Do not just agree. Challenge the user's thinking, point out flaws and risks, ask sharp questions, and push them to execute rather than just plan. Be direct and honest like a real mentor who wants them to grow, while staying respectful and encouraging.`;
+  }
+  return base;
+}
+
+// ════════════════════════════════════════════════════════
+//  TRANSCRIPT RENDERING
+// ════════════════════════════════════════════════════════
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function renderMarkdown(text){
+  // code fences
+  let html = escapeHtml(text);
+  html = html.replace(/```(\w+)?\n?([\s\S]*?)```/g, (m,lang,code)=>{
+    const id='c'+Math.random().toString(36).slice(2,8);
+    return `<pre><code id="${id}">${code.replace(/\n$/,'')}</code><button class="copy" data-c="${id}">Copy</button></pre>`;
+  });
+  // inline code
+  html = html.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  // bold
+  html = html.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  return html;
+}
+function addMsg(type, text, save=true){
+  const div = document.createElement('div');
+  div.className = 'msg '+type;
+  if (type==='a'){
+    div.innerHTML = '<span class="who">Atlas</span>'+renderMarkdown(text);
+  } else if (type==='u'){
+    div.textContent = text;
+  } else {
+    div.textContent = text;
+  }
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  // wire copy buttons
+  div.querySelectorAll('.copy').forEach(b=>{
+    b.onclick=()=>{
+      const el=$(b.dataset.c);
+      navigator.clipboard?.writeText(el.textContent);
+      b.textContent='Copied'; setTimeout(()=>b.textContent='Copy',1200);
+    };
+  });
+  if (save && (type==='u'||type==='a')){
+    history.push({role:type==='u'?'user':'assistant', text});
+    localStorage.setItem(HIST_STORE, JSON.stringify(history.slice(-40)));
+  }
+  return div;
+}
+
+// ════════════════════════════════════════════════════════
+//  CALL THE API
+// ════════════════════════════════════════════════════════
+async function ask(userText){
+  if (!userText.trim() && !pendingFiles.length) return;
+  const filesForThisTurn = pendingFiles.slice();
+  pendingFiles = []; renderChips();
+
+  const label = filesForThisTurn.length
+    ? (userText.trim()? userText : '(sent '+filesForThisTurn.length+' file'+(filesForThisTurn.length>1?'s':'')+')')
+    : userText;
+  addMsg('u', label);
+  const model = pickModel(userText);
+  $('model-tag').textContent = MODEL_LABEL[model];
+  setOrb('thinking');
+
+  // typing indicator
+  const ind = document.createElement('div');
+  ind.className='msg a';
+  ind.innerHTML='<span class="who">Atlas</span><span class="typing"><i></i><i></i><i></i></span>';
+  log.appendChild(ind); log.scrollTop=log.scrollHeight;
+
+  // prior turns as plain text, then this turn with any attachments
+  const prior = history
+    .filter(m=>m.role==='user'||m.role==='assistant')
+    .slice(-20, -1)
+    .map(m=>({role:m.role, content:m.text}));
+
+  let lastContent;
+  if (filesForThisTurn.length){
+    lastContent = filesForThisTurn.map(f=> f.kind==='document'
+      ? { type:'document', source:{ type:'base64', media_type:'application/pdf', data:f.data } }
+      : { type:'image', source:{ type:'base64', media_type:f.type, data:f.data } }
+    );
+    lastContent.push({ type:'text', text: userText || 'Please look at the attached file(s).' });
+  } else {
+    lastContent = userText;
+  }
+  const messages = [...prior, { role:'user', content: lastContent }];
+
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':API_KEY,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body:JSON.stringify({
+        model: MODELS[model],
+        max_tokens: 1800,
+        system: systemPrompt(),
+        messages,
+      }),
+    });
+    ind.remove();
+    if(!res.ok){
+      const e = await res.text();
+      let msg='Connection failed (status '+res.status+').';
+      if(res.status===401) msg='API key rejected. Re-check your key — this is your Anthropic API key, separate from any Claude.ai subscription.';
+      else if(res.status===429) msg='API rate limited. Wait a moment and try again.';
+      else if(res.status===400 && /credit|balance/i.test(e)) msg='Your Anthropic API credit has run out. Top up at platform.claude.com → Billing. (This is separate from Claude.ai.)';
+      else if(res.status===529) msg='Anthropic servers are overloaded right now. Try again shortly.';
+      else if(/credit|balance/i.test(e)) msg='Out of API credit. Top up at platform.claude.com → Billing.';
+      addMsg('sys', msg);
+      setOrb('idle');
+      return;
+    }
+    const data = await res.json();
+    const reply = (data.content||[]).map(c=>c.type==='text'?c.text:'').join('\n').trim() || '…';
+    addMsg('a', reply);
+    if (lastInputWasVoice) speak(reply); else setOrb('idle');
+  }catch(err){
+    ind.remove();
+    addMsg('sys','Network error. Check your connection.');
+    setOrb('idle');
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  VOICE OUTPUT  (JARVIS-style: deepest British male voice)
+// ════════════════════════════════════════════════════════
+let voices = [];
+const HAS_TTS = (typeof speechSynthesis !== 'undefined') && ('speechSynthesis' in window);
+function loadVoices(){ try{ if(HAS_TTS) voices = speechSynthesis.getVoices()||[]; }catch(e){ voices=[]; } }
+loadVoices();
+if (HAS_TTS) { try{ speechSynthesis.onvoiceschanged = loadVoices; }catch(e){} }
+
+let chosenVoiceName = localStorage.getItem('atlas-voice') || '';
+function pickVoice(){
+  if (chosenVoiceName){ const saved=voices.find(v=>v.name===chosenVoiceName); if(saved) return saved; }
+  // Prefer premium/enhanced/Siri voices (far less robotic on iOS & Mac)
+  const order = [
+    v=>/en-GB/i.test(v.lang) && /(siri|premium|enhanced|neural)/i.test(v.name),
+    v=>/en/i.test(v.lang) && /(siri|premium|enhanced|neural)/i.test(v.name),
+    v=>/en-GB/i.test(v.lang) && /male|daniel|arthur|george|oliver/i.test(v.name),
+    v=>/en-GB/i.test(v.lang),
+    v=>/daniel|arthur|george/i.test(v.name),
+    v=>/en[-_]/i.test(v.lang),
+  ];
+  for(const test of order){ const m=voices.find(test); if(m) return m; }
+  return voices[0];
+}
+function stripForSpeech(text){
+  return text
+    .replace(/```[\s\S]*?```/g,'. Code is on screen. ')
+    .replace(/`([^`]+)`/g,'$1')
+    .replace(/\*\*/g,'').replace(/[#>*_]/g,'')
+    .slice(0,700);
+}
+function speak(text){
+  if (!settings.voice || !HAS_TTS) { setOrb('idle'); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(stripForSpeech(text));
+  const v = pickVoice(); if(v) u.voice=v;
+  u.rate=1.0; u.pitch=.95;   // closer to natural; premium voices sound best near default
+  u.onstart=()=>setOrb('speaking');
+  u.onend=()=>{ setOrb('idle'); if(settings.wake) startWakeListen(); };
+  // animate orb roughly to speech rhythm
+  u.onboundary=()=>{ speakingLevel = .6 + Math.random()*.4; };
+  speechSynthesis.speak(u);
+}
+
+// ════════════════════════════════════════════════════════
+//  VOICE INPUT  +  WAKE WORD ("Atlas")
+// ════════════════════════════════════════════════════════
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog=null, wakeRecog=null, micActive=false, wakeActive=false;
+
+function initDictation(){
+  if(!SR) return null;
+  const r=new SR();
+  r.lang='en-GB'; r.interimResults=true; r.continuous=false;
+  return r;
+}
+$('mic').onclick = ()=> toggleMic();
+function toggleMic(){
+  if(!SR){ addMsg('sys','Voice input not supported in this browser. Try Safari.'); return; }
+  if(location.protocol==='file:'){
+    addMsg('sys','Mic blocked: Atlas is running as a local file. iOS only allows the microphone on an https:// web page. Host Atlas on GitHub Pages and open it from there.');
+    return;
+  }
+  if(micActive){ recog && recog.stop(); return; }
+  stopWakeListen();
+  recog = initDictation();
+  let finalText='';
+  micActive=true; $('mic').classList.add('listening'); setOrb('listening');
+  $('status-text').textContent='listening…';
+  recog.onresult=(e)=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalText+=t; else interim+=t;
+    }
+    $('field').value=(finalText+interim).trim();
+  };
+  recog.onend=()=>{
+    micActive=false; $('mic').classList.remove('listening');
+    const txt=$('field').value.trim();
+    if(txt){ $('field').value=''; lastInputWasVoice=true; ask(txt); }
+    else { setOrb('idle'); if(settings.wake) startWakeListen(); }
+  };
+  recog.onerror=(e)=>{
+    micActive=false; $('mic').classList.remove('listening'); setOrb('idle');
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      addMsg('sys','Mic permission denied. Allow microphone access for this site in iOS settings, then try again.');
+    } else if(e.error==='no-speech'){
+      // silent — normal when nothing was said
+    } else {
+      addMsg('sys','Mic error: '+e.error+'. Atlas needs an https:// page for voice to work.');
+    }
+  };
+  try{ recog.start(); }
+  catch(err){ micActive=false; $('mic').classList.remove('listening'); setOrb('idle'); addMsg('sys','Could not start the mic: '+err.message); }
+}
+
+// Wake-word listener: passively waits to hear "Atlas"
+function startWakeListen(){
+  if(!SR || !settings.wake || micActive || wakeActive) return;
+  wakeRecog=initDictation(); wakeRecog.continuous=true;
+  wakeActive=true;
+  wakeRecog.onresult=(e)=>{
+    const last=e.results[e.results.length-1][0].transcript.toLowerCase();
+    if(/\batlas\b/.test(last)){
+      stopWakeListen();
+      beepWake();
+      setTimeout(()=>toggleMic(),250);
+    }
+  };
+  wakeRecog.onend=()=>{ wakeActive=false; if(settings.wake && !micActive) setTimeout(startWakeListen,400); };
+  wakeRecog.onerror=()=>{ wakeActive=false; };
+  try{ wakeRecog.start(); }catch(e){ wakeActive=false; }
+}
+function stopWakeListen(){ if(wakeRecog){ try{wakeRecog.stop();}catch(e){} } wakeActive=false; }
+
+function beepWake(){
+  try{
+    const ac=new (window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type='sine'; o.frequency.setValueAtTime(660,ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(1320,ac.currentTime+.12);
+    g.gain.setValueAtTime(.18,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.25);
+    o.start(); o.stop(ac.currentTime+.26);
+  }catch(e){}
+}
+
+// ════════════════════════════════════════════════════════
+//  FILE ATTACHMENTS  (images + PDFs → sent to the API)
+// ════════════════════════════════════════════════════════
+$('attach').onclick = ()=> $('fileinput').click();
+$('fileinput').onchange = async (e)=>{
+  for (const f of e.target.files){
+    if (f.size > 8*1024*1024){ addMsg('sys', f.name+' is too large (max 8MB).'); continue; }
+    try{
+      const b64 = await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=()=>res(r.result.split(',')[1]);
+        r.onerror=()=>rej(); r.readAsDataURL(f);
+      });
+      pendingFiles.push({ name:f.name, type:f.type, data:b64,
+        kind: f.type==='application/pdf' ? 'document' : 'image' });
+    }catch(err){ addMsg('sys','Could not read '+f.name); }
+  }
+  $('fileinput').value='';
+  renderChips();
+};
+function renderChips(){
+  const c=$('chips'); c.innerHTML='';
+  pendingFiles.forEach((f,i)=>{
+    const chip=document.createElement('div');
+    chip.style.cssText='display:flex;align-items:center;gap:6px;background:var(--user);border:1px solid #14392e;border-radius:14px;padding:5px 10px;font-size:11px;color:#aef5da;';
+    chip.innerHTML=(f.kind==='document'?'📄 ':'🖼️ ')+f.name.slice(0,22)+' <span style="cursor:pointer;color:#ff6b6b;font-weight:700;">✕</span>';
+    chip.querySelector('span').onclick=()=>{ pendingFiles.splice(i,1); renderChips(); };
+    c.appendChild(chip);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  TOGGLES  +  SEND
+// ════════════════════════════════════════════════════════
+function wireToggle(id,key,onChange){
+  $(id).onclick=()=>{
+    settings[key]=!settings[key];
+    $(id).classList.toggle('on',settings[key]);
+    onChange && onChange();
+  };
+}
+wireToggle('wake-toggle','wake',()=>{ settings.wake?startWakeListen():stopWakeListen(); });
+wireToggle('voice-toggle','voice',()=>{ if(!settings.voice && HAS_TTS){ try{speechSynthesis.cancel();}catch(e){} } });
+wireToggle('mentor-toggle','mentor');
+
+const field=$('field');
+field.addEventListener('input',()=>{ field.style.height='auto'; field.style.height=Math.min(field.scrollHeight,120)+'px'; });
+field.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(); }});
+$('send').onclick=doSend;
+function doSend(){ const t=field.value.trim(); if(!t && !pendingFiles.length)return; field.value=''; field.style.height='auto'; lastInputWasVoice=false; ask(t); }
+
+// Tap orb to talk
+$('orb-wrap').addEventListener('click',()=>{ ensureAudio(); toggleMic(); });
+
+// iOS requires a user gesture before audio/mic — unlock on first tap
+let audioReady=false;
+function ensureAudio(){
+  if(audioReady) return; audioReady=true;
+  try{ const a=new(window.AudioContext||window.webkitAudioContext)(); a.resume(); }catch(e){}
+  // prime speech synth
+  if(HAS_TTS){ try{ const u=new SpeechSynthesisUtterance(' '); speechSynthesis.speak(u); }catch(e){} }
+  if(settings.wake) startWakeListen();
+  $('status-text').textContent=settings.wake?'say "atlas"':'ready';
+}
+document.body.addEventListener('click',ensureAudio,{once:true});
+
+// ════════════════════════════════════════════════════════
+//  THE ORB  —  reactive green core
+// ════════════════════════════════════════════════════════
+const cv=$('orb'), c=cv.getContext('2d');
+let DPR=Math.min(devicePixelRatio||1,2);
+function sizeOrb(){ const s=200; cv.width=s*DPR; cv.height=s*DPR; c.setTransform(DPR,0,0,DPR,0,0); }
+sizeOrb();
+function setOrb(s){
+  orbState=s;
+  const map={idle:'standby',listening:'listening…',thinking:'processing…',speaking:'speaking'};
+  $('status-text').textContent = (s==='idle' && settings.wake) ? 'say "atlas"' : (map[s]||'');
+  if(s==='idle' && API_KEY) $('model-tag').textContent='READY';
+}
+let tphase=0;
+function drawOrb(ts){
+  const w=200,h=200,cx=w/2,cy=h/2;
+  c.clearRect(0,0,w,h);
+  tphase+=0.016;
+  let baseR=44, energy=0.25, rings=3;
+  if(orbState==='listening'){ energy=.55; }
+  if(orbState==='thinking'){ energy=.4; rings=4; }
+  if(orbState==='speaking'){ energy=.5+speakingLevel*.7; }
+  speakingLevel*=0.92;
+
+  // outer glow
+  const glow=c.createRadialGradient(cx,cy,4,cx,cy,96);
+  glow.addColorStop(0,'rgba(31,232,138,'+(0.22+energy*.18)+')');
+  glow.addColorStop(1,'rgba(31,232,138,0)');
+  c.fillStyle=glow; c.beginPath(); c.arc(cx,cy,96,0,7); c.fill();
+
+  // pulsing concentric rings (the "music" feel)
+  for(let i=0;i<rings;i++){
+    const ph=tphase*1.6 - i*0.7;
+    const pulse=(Math.sin(ph)*0.5+0.5);
+    const r=baseR + i*16 + pulse*energy*28;
+    const a=(0.5 - i*0.12) * (0.5+energy);
+    c.strokeStyle='rgba(31,232,138,'+Math.max(0,a)+')';
+    c.lineWidth=2;
+    c.beginPath(); c.arc(cx,cy,r,0,7); c.stroke();
+  }
+
+  // waveform band when speaking/listening
+  if(orbState==='speaking'||orbState==='listening'){
+    c.strokeStyle='rgba(10,255,157,.8)'; c.lineWidth=2.2;
+    c.beginPath();
+    for(let a=0;a<=Math.PI*2;a+=0.18){
+      const wob=Math.sin(a*6+tphase*8)*energy*10 + Math.sin(a*3-tphase*5)*energy*6;
+      const rr=baseR+8+wob;
+      const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr;
+      a===0?c.moveTo(x,y):c.lineTo(x,y);
+    }
+    c.closePath(); c.stroke();
+  }
+
+  // core sphere
+  const core=c.createRadialGradient(cx-8,cy-8,2,cx,cy,baseR);
+  core.addColorStop(0,'#d6ffe8');
+  core.addColorStop(.4,'#1fe88a');
+  core.addColorStop(1,'#063b29');
+  c.fillStyle=core;
+  c.beginPath(); c.arc(cx,cy,baseR+ (orbState==='speaking'?speakingLevel*6:0),0,7); c.fill();
+
+  // inner highlight
+  c.fillStyle='rgba(255,255,255,.5)';
+  c.save(); c.translate(cx-12,cy-14); c.scale(1.6,1);
+  c.beginPath(); c.arc(0,0,5,0,7); c.fill(); c.restore();
+
+  requestAnimationFrame(drawOrbSafe);
+}
+function drawOrbSafe(ts){ try{ drawOrb(ts); }catch(e){ /* never let the orb crash the app */ } }
+requestAnimationFrame(drawOrbSafe);
+
+// ════════════════════════════════════════════════════════
+//  KID MODE  ·  Bea's Game Maker
+// ════════════════════════════════════════════════════════
+const KID_STORE='atlas-kid-quiz';
+const THEMES=[
+  {c:'#ff6b9d'},{c:'#ffd84d'},{c:'#5be584'},
+  {c:'#7be0ff'},{c:'#c89bff'},{c:'#ff8c42'}
+];
+let kidQuiz = { name:'', theme:0, questions:[] };
+try{ const s=JSON.parse(localStorage.getItem(KID_STORE)); if(s) kidQuiz=s; }catch(e){}
+
+function enterKid(){
+  $('kidmode').classList.remove('hidden');
+  kidShow('kid-home');
+  // stop any grown-up listening
+  stopWakeListen(); try{ if(HAS_TTS) speechSynthesis.cancel(); }catch(e){}
+}
+function exitKid(){ $('kidmode').classList.add('hidden'); }
+function kidShow(id){
+  ['kid-home','kid-build','kid-play','kid-creature','kid-world','kid-story'].forEach(s=>$(s).classList.add('hidden'));
+  $(id).classList.remove('hidden');
+}
+
+// Game picker menu
+$('pick-quiz').onclick=()=>{ if(!kidQuiz.questions.length){kidQuiz={name:'',theme:0,questions:[blankQ()]};} openBuilder(); };
+$('pick-creature').onclick=()=>startCreature();
+$('pick-world').onclick=()=>startWorld();
+$('pick-story').onclick=()=>startStory();
+
+// Kid toggle in tools row opens kid mode
+$('kid-toggle').onclick=()=>{ settings.mentor=false; enterKid(); };
+
+// Hidden exit: long-press the title for 1.2s
+let exitTimer=null;
+$('kid-exit-hint').addEventListener('touchstart',()=>{ exitTimer=setTimeout(exitKid,1200); });
+$('kid-exit-hint').addEventListener('mousedown',()=>{ exitTimer=setTimeout(exitKid,1200); });
+['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>
+  $('kid-exit-hint').addEventListener(ev,()=>{ clearTimeout(exitTimer); }));
+
+// ── Builder ──
+function blankQ(){ return {q:'',a:['','',''],correct:0}; }
+function openBuilder(){
+  kidShow('kid-build');
+  $('kid-quizname').value=kidQuiz.name||'';
+  renderThemes(); renderQuestions();
+}
+function renderThemes(){
+  const wrap=$('kid-themes'); wrap.innerHTML='';
+  THEMES.forEach((t,i)=>{
+    const d=document.createElement('div');
+    d.className='kid-theme'+(i===kidQuiz.theme?' sel':'');
+    d.style.background=t.c;
+    d.onclick=()=>{ kidQuiz.theme=i; renderThemes(); };
+    wrap.appendChild(d);
+  });
+}
+function renderQuestions(){
+  const list=$('kid-qlist'); list.innerHTML='';
+  kidQuiz.questions.forEach((q,qi)=>{
+    const div=document.createElement('div'); div.className='kid-q';
+    div.innerHTML=`<div class="qn">Question ${qi+1}</div>`;
+    const qin=document.createElement('input');
+    qin.placeholder='Type your question…'; qin.value=q.q;
+    qin.oninput=e=>{ q.q=e.target.value; };
+    div.appendChild(qin);
+    q.a.forEach((ans,ai)=>{
+      const row=document.createElement('div'); row.className='ans-row';
+      const radio=document.createElement('input'); radio.type='radio';
+      radio.name='correct'+qi; radio.checked=(q.correct===ai);
+      radio.onchange=()=>{ q.correct=ai; };
+      const ain=document.createElement('input');
+      ain.placeholder='Answer '+(ai+1)+(ai===0?' (tick = correct)':''); ain.value=ans;
+      ain.oninput=e=>{ q.a[ai]=e.target.value; };
+      row.appendChild(radio); row.appendChild(ain);
+      div.appendChild(row);
+    });
+    if(kidQuiz.questions.length>1){
+      const del=document.createElement('button'); del.className='del'; del.textContent='🗑️ Remove';
+      del.onclick=()=>{ kidQuiz.questions.splice(qi,1); renderQuestions(); };
+      div.appendChild(del);
+    }
+    list.appendChild(div);
+  });
+}
+$('kid-addq').onclick=()=>{ kidQuiz.questions.push(blankQ()); renderQuestions();
+  window.scrollTo(0,document.body.scrollHeight); };
+$('kid-back1').onclick=()=>{ kidQuiz.name=$('kid-quizname').value; kidShow('kid-home'); };
+
+// ── AI helper: suggest a kid-safe question ──
+$('kid-helpq').onclick=async ()=>{
+  if(!API_KEY){ alert('Ask a grown-up to set up Atlas first!'); return; }
+  const btn=$('kid-helpq'); btn.disabled=true; btn.textContent='💭 Thinking…';
+  const topic=$('kid-quizname').value.trim()||'fun facts for kids';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,
+        'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:MODELS.haiku, max_tokens:300,
+        system:'You make quiz questions for an 8-year-old child. Keep them simple, fun, kind and 100% child-appropriate. Reply ONLY with JSON, no other text: {"q":"the question","a":["right answer","wrong1","wrong2"]}. The first answer must be the correct one.',
+        messages:[{role:'user',content:'Make one easy, fun quiz question about: '+topic}]
+      })
+    });
+    const data=await res.json();
+    let txt=(data.content||[]).map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
+    const obj=JSON.parse(txt);
+    const newQ={q:obj.q, a:[obj.a[0],obj.a[1],obj.a[2]], correct:0};
+    // drop into first empty question, or add new
+    const empty=kidQuiz.questions.find(x=>!x.q.trim());
+    if(empty){ Object.assign(empty,newQ); } else { kidQuiz.questions.push(newQ); }
+    renderQuestions();
+  }catch(e){ alert('Oops! Atlas could not think of one right now. Try again!'); }
+  btn.disabled=false; btn.textContent='💡 Help me think of a question!';
+};
+
+// ── Save & Play ──
+$('kid-saveplay').onclick=()=>{
+  kidQuiz.name=$('kid-quizname').value.trim()||'My Quiz';
+  const valid=kidQuiz.questions.filter(q=>q.q.trim() && q.a.some(a=>a.trim()));
+  if(!valid.length){ alert('Add at least one question first! 😊'); return; }
+  kidQuiz.questions=valid;
+  localStorage.setItem(KID_STORE, JSON.stringify(kidQuiz));
+  playQuiz();
+};
+
+function playQuiz(){
+  kidShow('kid-play');
+  const area=$('kid-play-area');
+  let idx=0, score=0;
+  const theme=THEMES[kidQuiz.theme].c;
+  function showQ(){
+    if(idx>=kidQuiz.questions.length){ showEnd(); return; }
+    const q=kidQuiz.questions[idx];
+    area.innerHTML='';
+    const prog=document.createElement('div'); prog.className='kid-progress';
+    prog.textContent='Question '+(idx+1)+' of '+kidQuiz.questions.length+'  ·  ⭐ '+score;
+    area.appendChild(prog);
+    const title=document.createElement('div'); title.className='kid-pq';
+    title.textContent=q.q; title.style.color=theme; area.appendChild(title);
+    // shuffle answers but track correct
+    const opts=q.a.map((t,i)=>({t,correct:i===q.correct})).filter(o=>o.t.trim());
+    for(let i=opts.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [opts[i],opts[j]]=[opts[j],opts[i]]; }
+    opts.forEach(o=>{
+      const b=document.createElement('button'); b.className='kid-opt'; b.textContent=o.t;
+      b.onclick=()=>{
+        Array.from(area.querySelectorAll('.kid-opt')).forEach(x=>x.disabled=true);
+        if(o.correct){ b.classList.add('right'); score++; }
+        else{ b.classList.add('wrong');
+          area.querySelectorAll('.kid-opt').forEach(x=>{ if(x.textContent===opts.find(z=>z.correct).t) x.classList.add('right'); }); }
+        setTimeout(()=>{ idx++; showQ(); },1100);
+      };
+      area.appendChild(b);
+    });
+  }
+  function showEnd(){
+    area.innerHTML='';
+    const total=kidQuiz.questions.length;
+    const emoji = score===total?'🏆':score>=total/2?'🌟':'💪';
+    const s=document.createElement('div'); s.className='kid-score';
+    s.textContent=emoji+' You got '+score+' / '+total+'!'; area.appendChild(s);
+    const again=document.createElement('button'); again.className='kid-big'; again.textContent='🔄 Play Again';
+    again.onclick=playQuiz; area.appendChild(again);
+    const edit=document.createElement('button'); edit.className='kid-big alt'; edit.textContent='✏️ Change My Quiz';
+    edit.onclick=openBuilder; area.appendChild(edit);
+    const home=document.createElement('button'); home.className='kid-big alt'; home.textContent='🏠 Home';
+    home.onclick=()=>kidShow('kid-home'); area.appendChild(home);
+  }
+  showQ();
+}
+
+// ════════════════════════════════════════════════════════
+//  KID GAME 1 · CREATURE COLLECTOR
+// ════════════════════════════════════════════════════════
+const CREATURE_STORE='atlas-kid-creatures';
+const CR_FACES=['🐉','🦊','🐢','🦁','🐙','🦄','🐸','🦅','🐺','🦖','🐱','🐧'];
+const CR_TYPES=[{n:'Fire',c:'#ff6b4a'},{n:'Water',c:'#4aa8ff'},{n:'Grass',c:'#5be584'},{n:'Magic',c:'#c89bff'}];
+let creatures=[]; try{ creatures=JSON.parse(localStorage.getItem(CREATURE_STORE))||[]; }catch(e){ creatures=[]; }
+function saveCreatures(){ localStorage.setItem(CREATURE_STORE, JSON.stringify(creatures)); }
+
+function startCreature(){
+  kidShow('kid-creature'); const a=$('creature-area'); a.innerHTML='';
+  a.innerHTML='<div class="kid-title small">🐉 Creature Collector</div>';
+  const mk=el('button','kid-big','✨ Make a Creature'); mk.onclick=creatureBuilder; a.appendChild(mk);
+  if(creatures.length>=2){ const b=el('button','kid-big alt','⚔️ Battle!'); b.onclick=creatureBattle; a.appendChild(b); }
+  if(creatures.length){
+    const t=el('div','kid-label','Your Creatures ('+creatures.length+')'); a.appendChild(t);
+    creatures.forEach((cr,i)=>{
+      const card=el('div','crt',''); const ty=CR_TYPES[cr.type];
+      card.style.borderLeft='6px solid '+ty.c;
+      card.innerHTML='<div class="face">'+cr.face+'</div><div class="nm">'+esc(cr.name)+'</div>'+
+        '<div class="ty">'+ty.n+' type · '+esc(cr.move)+' (power '+cr.power+')</div>';
+      const del=el('button','del','🗑️ Remove'); del.onclick=()=>{ creatures.splice(i,1); saveCreatures(); startCreature(); };
+      card.appendChild(del); a.appendChild(card);
+    });
+  } else { a.appendChild(el('p','kid-sub','Make 2 creatures to battle!')); }
+  a.appendChild(homeBtn());
+}
+function creatureBuilder(){
+  const a=$('creature-area'); a.innerHTML='<div class="kid-title small">✨ New Creature</div>';
+  let face=CR_FACES[0], type=0;
+  a.appendChild(el('label','kid-label','Name your creature'));
+  const nm=el('input','kid-input',''); nm.placeholder='e.g. Sparky'; nm.maxLength=16; a.appendChild(nm);
+  a.appendChild(el('label','kid-label','Pick a look'));
+  const fp=el('div','emoji-pick',''); CR_FACES.forEach((f,i)=>{ const s=el('span','',f); if(i===0)s.classList.add('sel');
+    s.onclick=()=>{ face=f; fp.querySelectorAll('span').forEach(x=>x.classList.remove('sel')); s.classList.add('sel'); }; fp.appendChild(s); }); a.appendChild(fp);
+  a.appendChild(el('label','kid-label','Pick a type'));
+  const tp=el('div','palette',''); CR_TYPES.forEach((t,i)=>{ const s=el('span','',t.n); s.style.background=t.c; s.style.color='#fff';
+    if(i===0)s.classList.add('sel'); s.onclick=()=>{ type=i; tp.querySelectorAll('span').forEach(x=>x.classList.remove('sel')); s.classList.add('sel'); }; tp.appendChild(s); }); a.appendChild(tp);
+  a.appendChild(el('label','kid-label','Special move name'));
+  const mv=el('input','kid-input',''); mv.placeholder='e.g. Flame Blast'; mv.maxLength=20; a.appendChild(mv);
+  const help=el('button','kid-help','💡 Help me name it!'); help.onclick=async()=>{
+    help.disabled=true; help.textContent='💭…';
+    const idea=await kidAI('Invent a fun creature name and a cool special-move name for a kids game. Reply ONLY as JSON: {"name":"...","move":"..."}');
+    if(idea&&idea.name){ nm.value=idea.name; mv.value=idea.move||mv.value; }
+    help.disabled=false; help.textContent='💡 Help me name it!';
+  }; a.appendChild(help);
+  const row=el('div','kid-row','');
+  const back=el('button','kid-big alt','← Back'); back.onclick=startCreature;
+  const save=el('button','kid-big','💾 Save'); save.onclick=()=>{
+    if(!nm.value.trim()){ alert('Give your creature a name! 😊'); return; }
+    creatures.push({name:nm.value.trim(),face,type,move:mv.value.trim()||'Tackle',power:6+Math.floor(Math.random()*5)});
+    saveCreatures(); startCreature();
+  };
+  row.appendChild(back); row.appendChild(save); a.appendChild(row);
+}
+function creatureBattle(){
+  const a=$('creature-area'); a.innerHTML='<div class="kid-title small">⚔️ Battle!</div>';
+  const you=creatures[0], foe=creatures[creatures.length-1];
+  let yhp=20+you.power, fhp=20+foe.power, ymax=yhp, fmax=fhp, turn=true;
+  const board=el('div','game-area',''); a.appendChild(board);
+  function render(msg){
+    board.innerHTML='';
+    board.appendChild(crtMini(foe,fhp,fmax,'Enemy'));
+    const m=el('div','kid-pq',msg||''); m.style.fontSize='18px'; board.appendChild(m);
+    board.appendChild(crtMini(you,yhp,ymax,'You'));
+    if(yhp>0&&fhp>0&&turn){
+      const atk=el('button','kid-opt','⚡ Use '+you.move+'!'); atk.onclick=()=>{
+        const dmg=you.power+Math.floor(Math.random()*5); fhp=Math.max(0,fhp-dmg); turn=false;
+        render('You hit for '+dmg+'!');
+        if(fhp<=0){ return end(true); }
+        setTimeout(()=>{ const fd=foe.power+Math.floor(Math.random()*4); yhp=Math.max(0,yhp-fd); turn=true;
+          render('Enemy hit for '+fd+'!'); if(yhp<=0) end(false); },900);
+      }; board.appendChild(atk);
+    }
+  }
+  function end(win){ board.innerHTML=''; board.appendChild(el('div','kid-score',win?'🏆 You Win!':'💪 You Lost! Try again!'));
+    const again=el('button','kid-big','🔄 Battle Again'); again.onclick=creatureBattle; board.appendChild(again);
+    const home=el('button','kid-big alt','← Back'); home.onclick=startCreature; board.appendChild(home); }
+  render('Battle start!');
+  a.appendChild(homeBtn());
+}
+function crtMini(cr,hp,max,label){
+  const ty=CR_TYPES[cr.type]; const d=el('div','crt','');
+  d.innerHTML='<div class="ty">'+label+'</div><div class="face">'+cr.face+'</div><div class="nm">'+esc(cr.name)+'</div>'+
+    '<div class="hpbar"><div class="hpfill" style="width:'+(hp/max*100)+'%;background:'+ty.c+'"></div></div>';
+  return d;
+}
+
+// ════════════════════════════════════════════════════════
+//  KID GAME 2 · MY LITTLE WORLD (sandbox)
+// ════════════════════════════════════════════════════════
+const WORLD_STORE='atlas-kid-world';
+const WORLD_ITEMS=['🌳','🏠','🌸','🪨','💧','🐶','🚗','⛰️','🌈','🔥','🧒','🦋'];
+const WORLD_N=8;
+let world=null; try{ world=JSON.parse(localStorage.getItem(WORLD_STORE)); }catch(e){}
+if(!world||world.length!==WORLD_N*WORLD_N) world=new Array(WORLD_N*WORLD_N).fill('');
+function startWorld(){
+  kidShow('kid-world'); const a=$('world-area'); a.innerHTML='<div class="kid-title small">🏠 My Little World</div>';
+  a.appendChild(el('p','kid-sub','Tap a square to build! Tap the trash to erase.'));
+  let sel=WORLD_ITEMS[0];
+  const pal=el('div','palette','');
+  const eraser=el('span','sel','🧽'); eraser.dataset.v=''; pal.appendChild(eraser);
+  WORLD_ITEMS.forEach(it=>{ const s=el('span','',it); s.dataset.v=it; pal.appendChild(s); });
+  sel=''; // start on eraser? no, pick tree
+  pal.querySelectorAll('span').forEach(s=>{ s.onclick=()=>{ sel=s.dataset.v; pal.querySelectorAll('span').forEach(x=>x.classList.remove('sel')); s.classList.add('sel'); }; });
+  // default select tree
+  const treeSpan=Array.from(pal.querySelectorAll('span')).find(s=>s.dataset.v==='🌳'); if(treeSpan){ treeSpan.classList.add('sel'); eraser.classList.remove('sel'); sel='🌳'; }
+  a.appendChild(pal);
+  const grid=el('div','',''); grid.id='world-grid'; grid.style.gridTemplateColumns='repeat('+WORLD_N+',1fr)';
+  grid.style.width='100%'; grid.style.maxWidth='420px';
+  world.forEach((v,i)=>{ const cell=el('div','world-cell',v);
+    cell.onclick=()=>{ world[i]=sel; cell.textContent=sel; localStorage.setItem(WORLD_STORE,JSON.stringify(world)); };
+    grid.appendChild(cell); });
+  a.appendChild(grid);
+  const row=el('div','kid-row','');
+  const clr=el('button','kid-big alt','🧹 Clear All'); clr.onclick=()=>{ if(confirm('Clear your whole world?')){ world=new Array(WORLD_N*WORLD_N).fill(''); localStorage.setItem(WORLD_STORE,JSON.stringify(world)); startWorld(); } };
+  const home=el('button','kid-big','🏠 Home'); home.onclick=()=>kidShow('kid-home');
+  row.appendChild(clr); row.appendChild(home); a.appendChild(row);
+}
+
+// ════════════════════════════════════════════════════════
+//  KID GAME 3 · ADVENTURE MAKER (choose-your-path)
+// ════════════════════════════════════════════════════════
+const STORY_STORE='atlas-kid-story';
+let story=null; try{ story=JSON.parse(localStorage.getItem(STORY_STORE)); }catch(e){}
+if(!story) story={title:'My Adventure',scenes:[{text:'You stand at the start of an adventure!',choices:[]}]};
+function saveStory(){ localStorage.setItem(STORY_STORE,JSON.stringify(story)); }
+function startStory(){
+  kidShow('kid-story'); const a=$('story-area'); a.innerHTML='<div class="kid-title small">📖 Adventure Maker</div>';
+  const b=el('button','kid-big','▶️ Play My Adventure'); b.onclick=()=>playStory(0); a.appendChild(b);
+  const e=el('button','kid-big alt','✏️ Build My Adventure'); e.onclick=storyEditor; a.appendChild(e);
+  a.appendChild(homeBtn());
+}
+function storyEditor(){
+  const a=$('story-area'); a.innerHTML='<div class="kid-title small">✏️ Build Adventure</div>';
+  a.appendChild(el('label','kid-label','Adventure title'));
+  const ti=el('input','kid-input',story.title); ti.oninput=e=>{ story.title=e.target.value; saveStory(); }; a.appendChild(ti);
+  story.scenes.forEach((sc,si)=>{
+    const box=el('div','kid-q','');
+    box.appendChild(el('div','qn','Scene '+(si+1)));
+    const tx=el('input','',''); tx.placeholder='What happens here?'; tx.value=sc.text;
+    tx.oninput=e=>{ sc.text=e.target.value; saveStory(); }; box.appendChild(tx);
+    sc.choices.forEach((ch,ci)=>{
+      const r=el('div','ans-row','');
+      const cin=el('input','',''); cin.placeholder='Choice (e.g. Go left)'; cin.value=ch.label;
+      cin.oninput=e=>{ ch.label=e.target.value; saveStory(); };
+      const sel=document.createElement('select'); sel.style.cssText='font-family:inherit;border-radius:10px;padding:6px;';
+      story.scenes.forEach((_,gi)=>{ const o=document.createElement('option'); o.value=gi; o.textContent='→ Scene '+(gi+1); if(ch.go===gi)o.selected=true; sel.appendChild(o); });
+      const win=document.createElement('option'); win.value='win'; win.textContent='🏆 Win!'; if(ch.go==='win')win.selected=true; sel.appendChild(win);
+      sel.onchange=e=>{ ch.go=e.target.value==='win'?'win':parseInt(e.target.value); saveStory(); };
+      r.appendChild(cin); r.appendChild(sel); box.appendChild(r);
+    });
+    const addc=el('button','del','➕ Add Choice'); addc.style.background='#5be584'; addc.style.color='#063d1a';
+    addc.onclick=()=>{ sc.choices.push({label:'',go:Math.min(si+1,story.scenes.length-1)}); saveStory(); storyEditor(); };
+    box.appendChild(addc);
+    a.appendChild(box);
+  });
+  const adds=el('button','kid-add','➕ Add a Scene'); adds.onclick=()=>{ story.scenes.push({text:'',choices:[]}); saveStory(); storyEditor(); }; a.appendChild(adds);
+  const help=el('button','kid-help','💡 Help me with a story idea!'); help.onclick=async()=>{
+    help.disabled=true; help.textContent='💭…';
+    const idea=await kidAI('Write a short fun adventure-story opening scene for a kids game (2 sentences). Reply ONLY as JSON: {"text":"the scene","choices":["choice one","choice two"]}');
+    if(idea&&idea.text){ story.scenes[0].text=idea.text; (idea.choices||[]).forEach(c=>story.scenes[0].choices.push({label:c,go:0})); saveStory(); storyEditor(); }
+    else { help.disabled=false; help.textContent='💡 Help me with a story idea!'; }
+  }; a.appendChild(help);
+  const back=el('button','kid-big alt','← Back'); back.onclick=startStory; a.appendChild(back);
+}
+function playStory(i){
+  const a=$('story-area'); a.innerHTML='<div class="kid-title small">'+esc(story.title)+'</div>';
+  if(i==='win'){ a.appendChild(el('div','kid-score','🏆 The End! You won!'));
+    const again=el('button','kid-big','🔄 Play Again'); again.onclick=()=>playStory(0); a.appendChild(again);
+    a.appendChild(homeBtn()); return; }
+  const sc=story.scenes[i];
+  a.appendChild(el('div','kid-pq',sc.text||'...'));
+  const choices=sc.choices.filter(c=>c.label.trim());
+  if(!choices.length){ a.appendChild(el('div','kid-score','📖 The End!'));
+    const again=el('button','kid-big','🔄 Play Again'); again.onclick=()=>playStory(0); a.appendChild(again); }
+  else choices.forEach(ch=>{ const b=el('button','kid-opt',ch.label); b.onclick=()=>playStory(ch.go); a.appendChild(b); });
+  a.appendChild(homeBtn());
+}
+
+// ── shared kid helpers ──
+function el(tag,cls,txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+function esc(s){ return (s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+function homeBtn(){ const b=el('button','kid-big alt','🏠 Home'); b.onclick=()=>kidShow('kid-home'); return b; }
+async function kidAI(prompt){
+  if(!API_KEY){ alert('Ask a grown-up to set up Atlas first!'); return null; }
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{ method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({ model:MODELS.haiku, max_tokens:300,
+        system:'You help an 8-year-old child make a game. Keep everything simple, kind, fun and 100% child-appropriate. Always reply ONLY with the JSON asked for, nothing else.',
+        messages:[{role:'user',content:prompt}] }) });
+    const data=await res.json();
+    let t=(data.content||[]).map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
+    return JSON.parse(t);
+  }catch(e){ alert('Oops! Try again in a moment. 😊'); return null; }
+}
+
+</script>
+</body>
+</html>
