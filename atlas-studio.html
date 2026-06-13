@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ATLAS STUDIO</title>
+<style>
+:root{
+  --bg:#02060a; --bg2:#04101a;
+  --core:#1fe88a; --core-soft:#0aff9d; --core-dim:#0c5c42;
+  --text:#d4fff0; --muted:#5e8c7d;
+  --user:#0e2a22; --panel:rgba(10,30,24,.55);
+  --amber:#ffb74d; --danger:#ff6b6b;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:'SF Mono',ui-monospace,'Roboto Mono',Menlo,monospace;
+  -webkit-user-select:none;user-select:none;}
+body{display:flex;flex-direction:column;
+  background:radial-gradient(ellipse at 50% 20%,#06141d 0%,#02060a 70%);}
+textarea,input{ -webkit-user-select:text;user-select:text; }
+
+/* ── Top bar ── */
+#topbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:max(12px,env(safe-area-inset-top)) 16px 8px;font-size:11px;letter-spacing:2px;
+  color:var(--muted);text-transform:uppercase;}
+#brand{display:flex;align-items:center;gap:8px;color:var(--core);font-weight:600;letter-spacing:4px;}
+#brand .dot{width:7px;height:7px;border-radius:50%;background:var(--core);
+  box-shadow:0 0 10px var(--core);animation:blink 2.4s infinite;}
+#brand small{letter-spacing:2px;color:var(--muted);font-weight:400;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#model-pick{display:flex;gap:4px;}
+.mbtn{font-size:10px;color:var(--muted);border:1px solid #133a2c;background:transparent;
+  padding:4px 9px;border-radius:14px;letter-spacing:1px;cursor:pointer;font-family:inherit;text-transform:uppercase;}
+.mbtn.on{color:var(--core);border-color:var(--core-dim);background:rgba(31,232,138,.08);}
+
+/* ── File bar ── */
+#filebar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:4px 16px 8px;font-size:12px;}
+#fname{flex:1;color:var(--core-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#fname.empty{color:var(--muted);}
+#fmeta{color:var(--muted);font-size:10px;letter-spacing:1px;flex:0 0 auto;}
+
+/* ── Orb ── */
+#stage{flex:0 0 auto;display:flex;align-items:center;justify-content:center;height:16vh;min-height:110px;position:relative;}
+#orb-wrap{position:relative;width:120px;height:120px;}
+canvas#orb{position:absolute;inset:0;width:100%;height:100%;}
+#status-text{position:absolute;left:0;right:0;bottom:-4px;text-align:center;font-size:9px;letter-spacing:3px;
+  color:var(--muted);text-transform:uppercase;}
+
+/* ── Log ── */
+#log{flex:1 1 auto;overflow-y:auto;padding:4px 14px 10px;display:flex;flex-direction:column;gap:12px;
+  -webkit-overflow-scrolling:touch;scroll-behavior:smooth;}
+.msg{max-width:90%;font-size:13.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;
+  animation:rise .3s ease both;}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.a{align-self:flex-start;color:var(--text);}
+.msg.a .who{color:var(--core);font-size:10px;letter-spacing:3px;display:block;margin-bottom:4px;text-transform:uppercase;}
+.msg.u{align-self:flex-end;background:var(--user);border:1px solid #14392e;
+  padding:9px 13px;border-radius:16px 16px 4px 16px;color:#aef5da;}
+.msg.sys{align-self:center;color:var(--muted);font-size:11px;letter-spacing:.5px;text-align:center;
+  border:1px dashed #16382c;border-radius:10px;padding:8px 12px;max-width:94%;}
+.typing{display:inline-flex;gap:5px;align-items:center}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--core);display:inline-block;animation:td 1s infinite}
+.typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+@keyframes td{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+
+/* ── Edit result card ── */
+.editcard{align-self:stretch;border:1px solid var(--core-dim);border-radius:14px;
+  background:rgba(10,30,24,.5);padding:12px;display:flex;flex-direction:column;gap:10px;animation:rise .3s ease both;}
+.editcard .summary{font-size:13px;line-height:1.5;color:var(--text);}
+.editcard .stat{font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;}
+.editcard .actions{display:flex;gap:8px;flex-wrap:wrap;}
+.act{flex:1 1 auto;min-width:46%;font-family:inherit;font-size:12px;letter-spacing:1px;text-transform:uppercase;
+  border:none;border-radius:11px;padding:12px;cursor:pointer;font-weight:600;transition:transform .1s;}
+.act:active{transform:scale(.96);}
+.act.primary{background:var(--core);color:#021;box-shadow:0 0 16px rgba(31,232,138,.3);}
+.act.ghost{background:transparent;border:1px solid var(--core-dim);color:var(--core);}
+.act.amber{background:transparent;border:1px solid #6b4a1a;color:var(--amber);}
+
+/* ── Deck ── */
+#deck{flex:0 0 auto;padding:8px 14px max(14px,env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:8px;background:linear-gradient(to top,#04101a 55%,transparent);}
+#inputrow{display:flex;gap:8px;align-items:flex-end;}
+#field{flex:1;background:var(--panel);border:1px solid #154634;border-radius:16px;color:var(--text);
+  font-family:inherit;font-size:14px;padding:11px 13px;resize:none;max-height:120px;outline:none;line-height:1.4;}
+#field::placeholder{color:#3c6657;}
+#field:focus{border-color:var(--core-dim);}
+.btn{flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:1px solid #154634;background:var(--panel);
+  color:var(--core);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s;}
+.btn:active{transform:scale(.9);}
+.btn.primary{background:var(--core);color:#021;border-color:var(--core);box-shadow:0 0 16px rgba(31,232,138,.35);}
+.btn:disabled{opacity:.4;}
+#quickrow{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;}
+.chip{flex:0 0 auto;font-size:11px;letter-spacing:.5px;color:var(--muted);border:1px solid #133a2c;
+  background:transparent;border-radius:16px;padding:7px 12px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.chip:active{background:rgba(31,232,138,.08);}
+
+/* ── Setup ── */
+#setup{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 35%,#06141d,#01040700 70%),var(--bg);
+  z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;gap:16px;}
+#setup h1{font-size:38px;letter-spacing:10px;color:var(--core);font-weight:700;text-shadow:0 0 30px rgba(31,232,138,.5);}
+#setup .tag{font-size:11px;letter-spacing:6px;color:var(--muted);text-transform:uppercase;margin-top:-8px;}
+#setup p{color:var(--muted);font-size:12.5px;line-height:1.7;max-width:330px;letter-spacing:.4px;}
+#setup input{width:100%;max-width:340px;background:var(--panel);border:1px solid #154634;border-radius:14px;
+  color:var(--text);font-family:inherit;font-size:13px;padding:14px;outline:none;text-align:center;}
+#setup button{background:var(--core);color:#021;border:none;border-radius:14px;font-family:inherit;font-weight:700;
+  letter-spacing:3px;padding:14px 34px;font-size:13px;cursor:pointer;text-transform:uppercase;box-shadow:0 0 24px rgba(31,232,138,.4);}
+#setup .err{color:var(--danger);font-size:11.5px;min-height:14px;}
+#setup .key-note{font-size:10.5px;color:#3c6657;max-width:330px;}
+
+/* ── Preview overlay ── */
+#preview{position:fixed;inset:0;z-index:80;background:#000;display:none;flex-direction:column;}
+#preview.show{display:flex;}
+#preview-bar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:max(12px,env(safe-area-inset-top)) 14px 10px;background:#04101a;border-bottom:1px solid #133a2c;}
+#preview-bar .ttl{color:var(--core);font-size:12px;letter-spacing:2px;text-transform:uppercase;}
+#preview-bar .pbtns{display:flex;gap:8px;}
+.pb{font-family:inherit;font-size:11px;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:10px;
+  padding:9px 14px;cursor:pointer;font-weight:600;}
+.pb.keep{background:var(--core);color:#021;}
+.pb.discard{background:transparent;border:1px solid #6b1f1f;color:var(--danger);}
+#preview iframe{flex:1 1 auto;width:100%;border:none;background:#fff;}
+
+/* ── Code viewer ── */
+#codeview{position:fixed;inset:0;z-index:80;background:var(--bg);display:none;flex-direction:column;}
+#codeview.show{display:flex;}
+#codeview-bar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:max(12px,env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid #133a2c;}
+#codeview pre{flex:1 1 auto;overflow:auto;margin:0;padding:14px;font-size:11px;line-height:1.5;
+  color:#9affd5;white-space:pre;-webkit-overflow-scrolling:touch;}
+.hidden{display:none!important;}
+::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <h1>ATLAS</h1>
+  <div class="tag">Studio</div>
+  <p>Your private build assistant. Load a game, describe a change, get it back ready to ship. Add your Anthropic key to begin — it stays on this device only.</p>
+  <input id="keyin" type="password" placeholder="sk-ant-..." autocomplete="off" autocapitalize="off" spellcheck="false">
+  <div class="err" id="keyerr"></div>
+  <button id="keygo">Power On</button>
+  <p class="key-note">Get a key at console.anthropic.com → API keys. Charges go to your own Anthropic credit. Editing a big file costs a few pennies per change.</p>
+</div>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div id="brand"><span class="dot"></span>ATLAS <small>STUDIO</small></div>
+  <div id="model-pick">
+    <button class="mbtn" data-m="haiku">Haiku</button>
+    <button class="mbtn on" data-m="sonnet">Sonnet</button>
+    <button class="mbtn" data-m="opus">Opus</button>
+  </div>
+</div>
+
+<!-- FILE BAR -->
+<div id="filebar">
+  <button class="btn" id="loadbtn" style="width:38px;height:38px;font-size:16px;" title="Load file">📂</button>
+  <div id="fname" class="empty">No file loaded</div>
+  <div id="fmeta"></div>
+  <input id="fileinput" type="file" accept=".html,.htm,text/html" style="display:none">
+</div>
+
+<!-- ORB -->
+<div id="stage">
+  <div id="orb-wrap"><canvas id="orb"></canvas><div id="status-text">load a game to start</div></div>
+</div>
+
+<!-- LOG -->
+<div id="log"></div>
+
+<!-- DECK -->
+<div id="deck">
+  <div id="quickrow"></div>
+  <div id="inputrow">
+    <textarea id="field" rows="1" placeholder="Describe a change…"></textarea>
+    <button class="btn primary" id="send" title="Make change">▲</button>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div id="preview">
+  <div id="preview-bar">
+    <span class="ttl">Preview · new version</span>
+    <div class="pbtns">
+      <button class="pb discard" id="pv-discard">Discard</button>
+      <button class="pb keep" id="pv-keep">Keep it</button>
+    </div>
+  </div>
+  <iframe id="pv-frame" sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-modals"></iframe>
+</div>
+
+<!-- CODE VIEW -->
+<div id="codeview">
+  <div id="codeview-bar">
+    <span class="ttl" style="color:var(--core);font-size:12px;letter-spacing:2px;">Source</span>
+    <button class="pb keep" id="cv-close">Close</button>
+  </div>
+  <pre id="cv-pre"></pre>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  ATLAS STUDIO · game build assistant
+// ════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const log = $('log');
+
+function showErr(label, e){
+  try{ const d=document.createElement('div'); d.className='msg sys';
+    d.textContent=label+': '+(e?((e.name||'')+' — '+(e.message||e)):'unknown'); log.appendChild(d);
+    log.scrollTop=log.scrollHeight; }catch(_){}
+}
+window.addEventListener('error', ev=>showErr('Error', ev.error||ev.message));
+window.addEventListener('unhandledrejection', ev=>showErr('Promise error', ev.reason));
+
+// ── Storage ──
+const KEY_STORE='atlas-studio-key';
+let API_KEY = localStorage.getItem(KEY_STORE) || '';
+
+const MODELS = { haiku:'claude-haiku-4-5-20251001', sonnet:'claude-sonnet-4-6', opus:'claude-opus-4-8' };
+let model = 'sonnet';
+
+// ── File state ──
+let fileName = '';
+let currentCode = '';     // the live, accepted version
+let proposedCode = '';    // a version awaiting keep/discard
+
+// ════════════════════════════════════════════════════════
+//  SETUP / KEY
+// ════════════════════════════════════════════════════════
+function showApp(){ $('setup').classList.add('hidden');
+  addMsg('sys','ATLAS Studio online. Tap 📂 to load a game file, then tell me what to change.'); }
+if (API_KEY) { try{ showApp(); }catch(e){ showErr('start',e); } }
+$('keygo').onclick = ()=>{
+  const k=$('keyin').value.trim();
+  if(!k.startsWith('sk-ant-')){ $('keyerr').textContent='That doesn\u2019t look like an Anthropic key.'; return; }
+  API_KEY=k; localStorage.setItem(KEY_STORE,k); showApp();
+};
+
+// ── Model picker ──
+document.querySelectorAll('.mbtn').forEach(b=>{
+  b.onclick=()=>{ model=b.dataset.m;
+    document.querySelectorAll('.mbtn').forEach(x=>x.classList.toggle('on',x===b)); };
+});
+
+// ════════════════════════════════════════════════════════
+//  MESSAGES
+// ════════════════════════════════════════════════════════
+function addMsg(cls, text, scroll=true){
+  const d=document.createElement('div'); d.className='msg '+cls;
+  if(cls==='a'){ const w=document.createElement('span'); w.className='who'; w.textContent='Atlas'; d.appendChild(w);
+    d.appendChild(document.createTextNode(text)); }
+  else d.textContent=text;
+  log.appendChild(d); if(scroll) log.scrollTop=log.scrollHeight; return d;
+}
+function addTyping(){ const d=document.createElement('div'); d.className='msg a';
+  d.innerHTML='<span class="who">Atlas</span><span class="typing"><i></i><i></i><i></i></span>';
+  log.appendChild(d); log.scrollTop=log.scrollHeight; return d; }
+
+// ════════════════════════════════════════════════════════
+//  FILE LOADING
+// ════════════════════════════════════════════════════════
+$('loadbtn').onclick = ()=>$('fileinput').click();
+$('fileinput').onchange = (e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ currentCode=r.result; proposedCode=''; fileName=f.name;
+    $('fname').textContent=fileName; $('fname').classList.remove('empty');
+    updateMeta();
+    addMsg('sys','Loaded '+fileName+'. Tell me what to add, change, or fix.');
+    setOrb('idle'); $('status-text').textContent='ready';
+    buildQuickChips();
+  };
+  r.onerror=()=>addMsg('sys','Could not read that file.');
+  r.readAsText(f);
+  e.target.value='';
+};
+function lineCount(s){ return s ? s.split('\n').length : 0; }
+function updateMeta(){ $('fmeta').textContent = currentCode ? lineCount(currentCode)+' lines · '+Math.round(currentCode.length/1024)+'kb' : ''; }
+
+// Quick-action chips, tuned for the kind of games Hugo builds
+function buildQuickChips(){
+  const chips = ['▶ Preview current','👁 View code','🎨 Change a colour','➕ Add a feature','🐛 Fix a bug','💡 Suggest improvements'];
+  const row=$('quickrow'); row.innerHTML='';
+  chips.forEach(label=>{ const b=document.createElement('button'); b.className='chip'; b.textContent=label;
+    b.onclick=()=>chipAction(label); row.appendChild(b); });
+}
+function chipAction(label){
+  if(label.includes('Preview')){ if(currentCode) openPreview(currentCode,false); else addMsg('sys','Load a file first.'); return; }
+  if(label.includes('View code')){ openCode(currentCode); return; }
+  if(label.includes('Suggest')){ $('field').value='Suggest 3 small improvements I could make to this game, with no code yet — just ideas.'; doSend(); return; }
+  const seed={'Change a colour':'Change the ','Add a feature':'Add ','Fix a bug':'Fix the bug where '}[label.replace(/^[^ ]+ /,'')]||'';
+  $('field').value=seed; $('field').focus();
+}
+
+// ════════════════════════════════════════════════════════
+//  THE EDIT ENGINE
+// ════════════════════════════════════════════════════════
+function systemPrompt(){
+  return `You are ATLAS, an expert game and web-app developer helping Hugo improve self-contained HTML5 games (single-file games like "Santiago's City" and "Bea's Craft World"). These run on iPhone Safari and deploy to GitHub Pages.
+
+You will receive the FULL current source of one HTML file, then a change request.
+
+Rules:
+- If the request asks to CHANGE THE CODE: return the COMPLETE, updated HTML file — every line, start to finish, ready to save and deploy. Do not abbreviate, do not use "// ... rest unchanged ...", do not return a diff. The whole file.
+- Preserve everything that already works. Only change what the request needs.
+- Keep it a single self-contained file (no external dependencies unless already present).
+- It must work on mobile Safari with touch.
+- If the request is a QUESTION or asks for IDEAS (no code change needed): just answer in plain text, no file.
+
+Respond in this exact format:
+<summary>One or two sentences, plain language, on what you changed or are suggesting.</summary>
+<file>
+THE COMPLETE HTML FILE HERE — only if you changed code. Omit this whole block if no code change.
+</file>`;
+}
+
+function extractTag(text, tag){
+  const m = text.match(new RegExp('<'+tag+'>([\\s\\S]*?)<\\/'+tag+'>','i'));
+  return m ? m[1].trim() : null;
+}
+
+let busy=false;
+$('send').onclick = doSend;
+$('field').addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); doSend(); } });
+$('field').addEventListener('input', ()=>{ const f=$('field'); f.style.height='auto'; f.style.height=Math.min(f.scrollHeight,120)+'px'; });
+
+async function doSend(){
+  if(busy) return;
+  const text=$('field').value.trim();
+  if(!text) return;
+  if(!API_KEY){ addMsg('sys','Add your API key first.'); return; }
+  const needsFile = !/suggest|idea|explain|what|why|how|should i/i.test(text) || /add|change|fix|make|remove|move|colour|color|bigger|smaller/i.test(text);
+  if(needsFile && !currentCode){ addMsg('sys','Load a game file first (tap 📂).'); return; }
+
+  addMsg('u', text);
+  $('field').value=''; $('field').style.height='auto';
+  busy=true; $('send').disabled=true; setOrb('thinking'); $('status-text').textContent='thinking';
+  const ind=addTyping();
+
+  // Build the message. Include full file as context when we have one.
+  const userContent = currentCode
+    ? `Here is the current file "${fileName}":\n\n<current_file>\n${currentCode}\n</current_file>\n\nMy request: ${text}`
+    : text;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{ 'Content-Type':'application/json','x-api-key':API_KEY,
+        'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+      body:JSON.stringify({
+        model:MODELS[model],
+        max_tokens:32000,
+        system:systemPrompt(),
+        messages:[{role:'user',content:userContent}],
+      }),
+    });
+    ind.remove();
+    if(!res.ok){
+      const e=await res.text(); let msg='Connection failed (status '+res.status+').';
+      if(res.status===401) msg='API key rejected. Check it\u2019s your Anthropic API key from console.anthropic.com.';
+      else if(res.status===429) msg='Rate limited. Wait a moment and try again.';
+      else if(res.status===529) msg='Anthropic servers are busy right now. Try again shortly.';
+      else if(/credit|balance/i.test(e)) msg='Out of API credit. Top up at console.anthropic.com → Billing.';
+      addMsg('sys',msg); resetIdle(); return;
+    }
+    const data=await res.json();
+    const reply=(data.content||[]).map(c=>c.type==='text'?c.text:'').join('\n').trim();
+    handleReply(reply);
+  }catch(err){ ind.remove(); addMsg('sys','Network error. Check your connection.'); resetIdle(); }
+}
+
+function handleReply(reply){
+  const summary = extractTag(reply,'summary');
+  let file = extractTag(reply,'file');
+  // Fallback: if model wrapped file in code fences instead
+  if(!file){ const fm = reply.match(/```(?:html)?\n([\s\S]*?)```/); if(fm && /<html/i.test(fm[1])) file=fm[1].trim(); }
+
+  if(file && /<html[\s>]/i.test(file)){
+    proposedCode=file;
+    const card=document.createElement('div'); card.className='editcard';
+    const s=document.createElement('div'); s.className='summary'; s.textContent=summary||'Updated the file.'; card.appendChild(s);
+    const st=document.createElement('div'); st.className='stat';
+    st.textContent=lineCount(currentCode)+' → '+lineCount(file)+' lines'; card.appendChild(st);
+    const acts=document.createElement('div'); acts.className='actions';
+    const bPrev=document.createElement('button'); bPrev.className='act primary'; bPrev.textContent='▶ Preview';
+    bPrev.onclick=()=>openPreview(proposedCode,true);
+    const bKeep=document.createElement('button'); bKeep.className='act ghost'; bKeep.textContent='✓ Keep';
+    bKeep.onclick=()=>keepProposed();
+    const bSave=document.createElement('button'); bSave.className='act ghost'; bSave.textContent='⤓ Download';
+    bSave.onclick=()=>downloadCode(proposedCode);
+    const bCode=document.createElement('button'); bCode.className='act amber'; bCode.textContent='👁 Code';
+    bCode.onclick=()=>openCode(proposedCode);
+    acts.append(bPrev,bKeep,bSave,bCode); card.appendChild(acts);
+    log.appendChild(card); log.scrollTop=log.scrollHeight;
+  } else {
+    // Plain answer / suggestions, no code
+    addMsg('a', summary || reply || '…');
+  }
+  resetIdle();
+}
+
+function keepProposed(){
+  if(!proposedCode) return;
+  currentCode=proposedCode; proposedCode=''; updateMeta();
+  addMsg('sys','Saved as current version. Download it when you\u2019re ready to deploy.');
+}
+function resetIdle(){ busy=false; $('send').disabled=false; setOrb('idle'); $('status-text').textContent= currentCode?'ready':'load a game to start'; }
+
+// ════════════════════════════════════════════════════════
+//  PREVIEW
+// ════════════════════════════════════════════════════════
+function openPreview(code, isProposed){
+  const frame=$('pv-frame');
+  frame.srcdoc=code;
+  $('preview').classList.add('show');
+  $('preview-bar').querySelector('.ttl').textContent = isProposed?'Preview · proposed change':'Preview · current';
+  $('pv-keep').style.display = isProposed?'':'none';
+  $('pv-keep').onclick=()=>{ keepProposed(); closePreview(); };
+  $('pv-discard').textContent = isProposed?'Discard':'Close';
+  $('pv-discard').onclick=()=>{ if(isProposed){ proposedCode=''; addMsg('sys','Discarded that change.'); } closePreview(); };
+}
+function closePreview(){ $('preview').classList.remove('show'); $('pv-frame').srcdoc=''; }
+
+// ════════════════════════════════════════════════════════
+//  CODE VIEW + DOWNLOAD
+// ════════════════════════════════════════════════════════
+function openCode(code){ if(!code){ addMsg('sys','Nothing to show yet.'); return; }
+  $('cv-pre').textContent=code; $('codeview').classList.add('show'); }
+$('cv-close').onclick=()=>$('codeview').classList.remove('show');
+
+function downloadCode(code){
+  try{
+    const blob=new Blob([code],{type:'text/html'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    a.download = fileName || 'game.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    addMsg('sys','Downloading '+(fileName||'game.html')+'. On iPhone: tap the download, then Share → Save to Files, and upload to GitHub.');
+  }catch(e){ addMsg('sys','Download failed — use 👁 Code and copy it instead.'); }
+}
+
+// ════════════════════════════════════════════════════════
+//  ORB (reused green particle orb)
+// ════════════════════════════════════════════════════════
+const orb=$('orb'), octx=orb.getContext('2d');
+let oW,oH,orbState='idle',pulse=0;
+function sizeOrb(){ const r=Math.min(window.devicePixelRatio||1,2);
+  oW=orb.width=120*r; oH=orb.height=120*r; octx.setTransform(r,0,0,r,0,0); }
+sizeOrb(); window.addEventListener('resize',sizeOrb);
+function setOrb(s){ orbState=s; }
+const parts=Array.from({length:46},()=>({a:Math.random()*Math.PI*2,r:30+Math.random()*22,sp:.3+Math.random()*.7,sz:1+Math.random()*2}));
+function drawOrb(t){
+  octx.clearRect(0,0,120,120); const cx=60,cy=60;
+  pulse += ((orbState==='thinking'?1:.25)-pulse)*.08;
+  const baseR=26+Math.sin(t*2)*2*pulse;
+  const g=octx.createRadialGradient(cx,cy,2,cx,cy,baseR+18);
+  g.addColorStop(0,'rgba(31,232,138,.9)'); g.addColorStop(.5,'rgba(31,232,138,.25)'); g.addColorStop(1,'rgba(31,232,138,0)');
+  octx.fillStyle=g; octx.beginPath(); octx.arc(cx,cy,baseR+18,0,Math.PI*2); octx.fill();
+  octx.fillStyle='rgba(212,255,240,.95)'; octx.beginPath(); octx.arc(cx,cy,baseR*.5,0,Math.PI*2); octx.fill();
+  const speed=orbState==='thinking'?2.2:orbState==='idle'?.5:1;
+  parts.forEach(p=>{ p.a+=p.sp*.01*speed; const r=p.r+Math.sin(t*p.sp+p.a)*4;
+    const x=cx+Math.cos(p.a)*r, y=cy+Math.sin(p.a)*r;
+    octx.fillStyle='rgba(31,232,138,'+(orbState==='idle'?.4:.8)+')';
+    octx.beginPath(); octx.arc(x,y,p.sz,0,Math.PI*2); octx.fill(); });
+}
+let t0=0; function orbLoop(ts){ drawOrb(ts*.001); requestAnimationFrame(orbLoop); } requestAnimationFrame(orbLoop);
+orb.parentElement.onclick=()=>{ if(!currentCode){ $('loadbtn').click(); } };
+</script>
+</body>
+</html>
