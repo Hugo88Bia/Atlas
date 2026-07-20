@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Santi's Sticker Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#241645;
+    --card:#FFF8EC;
+    --coral:#FF6F61;
+    --sky:#3DB4F2;
+    --green:#4CD787;
+    --yellow:#FFC93C;
+    --violet:#9B5DE5;
+    --ink:#241645;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%; overflow:hidden; position:fixed; width:100%;}
+  body{
+    background:var(--bg);
+    font-family:'Nunito',sans-serif;
+    color:var(--card);
+    user-select:none;
+  }
+  #app{
+    position:relative; width:100%; height:100vh; height:100dvh;
+    background:var(--bg);
+    background:radial-gradient(circle at 50% 0%, #3a2569 0%, var(--bg) 60%);
+  }
+  .screen{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    background-color:var(--bg);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  .screen.active{opacity:1; visibility:visible; pointer-events:auto;}
+
+  /* ---------- HOME ---------- */
+  #home{align-items:center; justify-content:center; gap:36px; padding:24px;}
+  #home h1{
+    font-family:'Baloo 2', sans-serif;
+    font-size:clamp(28px, 7vw, 44px);
+    margin:0; text-align:center; letter-spacing:1px;
+  }
+  #home h1 span{display:inline-block; animation:bob 1.6s ease-in-out infinite;}
+  #home h1 span:nth-child(odd){animation-delay:.15s;}
+  #home h1 span:nth-child(3n){animation-delay:.3s;}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+  .home-btns{display:flex; gap:28px; flex-wrap:wrap; justify-content:center;}
+  .mode-btn{
+    width:150px; height:150px; border-radius:50%;
+    border:none; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'Baloo 2', sans-serif; font-weight:800; font-size:30px; color:#fff;
+    box-shadow:0 10px 0 rgba(0,0,0,.18), 0 14px 24px rgba(0,0,0,.25);
+    transition:transform .08s ease;
+  }
+  .mode-btn:active{transform:translateY(8px) scale(.97); box-shadow:0 2px 0 rgba(0,0,0,.18);}
+  .mode-btn small{font-family:'Nunito'; font-size:14px; font-weight:700; margin-top:2px;}
+  #btn-abc{background:linear-gradient(145deg, var(--coral), #ff8f7f);}
+  #btn-123{background:linear-gradient(145deg, var(--sky), #6ecbff);}
+
+  /* ---------- TOPBAR (shared) ---------- */
+  .topbar{display:flex; align-items:center; gap:10px; padding:calc(14px + env(safe-area-inset-top)) 14px 10px;}
+  .iconbtn{
+    width:46px; height:46px; border-radius:50%; border:none; background:rgba(255,255,255,.12);
+    color:var(--card); font-size:20px; display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .iconbtn:active{background:rgba(255,255,255,.22);}
+  .topbar h2{font-family:'Baloo 2'; font-size:20px; margin:0; flex:1;}
+  .progress-pill{
+    font-family:'Nunito'; font-weight:800; font-size:13px; background:rgba(255,255,255,.12);
+    padding:8px 14px; border-radius:20px; white-space:nowrap; flex:0 0 auto;
+  }
+  .toggle-btn{
+    font-family:'Nunito'; font-weight:800; font-size:13px; border:none; color:#fff;
+    background:rgba(255,255,255,.16); padding:10px 14px; border-radius:20px; display:flex; align-items:center; gap:6px; flex:0 0 auto;
+  }
+  .toggle-btn:active{background:rgba(255,255,255,.28);}
+
+  /* ---------- BROWSE GRID ---------- */
+  #grid-screen{padding:0 16px 16px;}
+  .grid-wrap{flex:1; overflow-y:auto; padding-bottom:20px;}
+  .tile-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(74px, 1fr));
+    gap:10px;
+  }
+  .tile{
+    position:relative; aspect-ratio:1/1; border-radius:18px; border:none;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; color:#fff;
+    text-shadow:0 2px 0 rgba(0,0,0,.15);
+    font-size:clamp(20px,6vw,28px);
+    box-shadow:0 5px 0 rgba(0,0,0,.15);
+  }
+  .tile:active{transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.15);}
+  .tile .badge{position:absolute; top:-6px; right:-6px; font-size:16px;}
+  .tile .emoji-corner{position:absolute; bottom:2px; right:4px; font-size:12px; opacity:.85;}
+
+  /* ---------- CARD (flashcard) ---------- */
+  #card-screen{align-items:center; justify-content:center; padding:20px; text-align:center;}
+  .card-top{position:absolute; top:14px; left:14px; right:14px; display:flex; justify-content:space-between;}
+  .big-symbol{
+    font-family:'Baloo 2'; font-weight:800; font-size:clamp(90px,42vw,220px);
+    line-height:1; text-shadow:0 6px 0 rgba(0,0,0,.15);
+    animation:pop .3s ease;
+  }
+  @keyframes pop{from{transform:scale(.6); opacity:0;} to{transform:scale(1); opacity:1;}}
+  .word-line{font-family:'Baloo 2'; font-weight:700; font-size:clamp(20px,5vw,28px); margin-top:6px;}
+  .word-emoji{font-size:clamp(30px,8vw,50px); margin-left:6px;}
+  .stars-row{display:flex; flex-wrap:wrap; justify-content:center; gap:6px; max-width:90vw; margin-top:14px;}
+  .stars-row span{font-size:clamp(16px,5vw,26px); animation:pop .3s ease backwards;}
+  .card-controls{position:absolute; bottom:26px; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:26px;}
+  .nav-arrow{
+    width:56px; height:56px; border-radius:50%; border:none; background:rgba(255,255,255,.18);
+    color:#fff; font-size:26px; display:flex; align-items:center; justify-content:center;
+  }
+  .nav-arrow:active{background:rgba(255,255,255,.3);}
+  .speaker-btn{
+    width:70px; height:70px; border-radius:50%; border:none; background:#fff; color:var(--ink);
+    font-size:30px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 0 rgba(0,0,0,.2);
+  }
+  .speaker-btn:active{transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.2);}
+
+  /* ---------- PLAY / MATCH SCREEN ---------- */
+  #play-screen{padding:0;}
+  .play-area{flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:6px 10px calc(22px + env(safe-area-inset-bottom)); overflow:hidden;}
+  .instruction{font-family:'Baloo 2'; font-weight:700; font-size:clamp(15px,4vw,19px); opacity:.85; margin:2px 0 0;}
+  .slot-zone{flex:1; min-height:0; display:flex; align-items:center; justify-content:center; width:100%; position:relative;}
+  .slot-outline{
+    font-family:'Baloo 2'; font-weight:800;
+    font-size:clamp(110px,42vw,240px);
+    color:transparent;
+    -webkit-text-stroke:5px rgba(255,255,255,.55);
+    line-height:1;
+    transition:color .35s ease;
+    position:relative;
+  }
+  .slot-outline.filled{ -webkit-text-stroke:0px transparent; }
+  .slot-zone.shake{ animation:shake .4s ease; }
+  @keyframes shake{
+    0%,100%{transform:translateX(0);} 20%{transform:translateX(-10px);}
+    40%{transform:translateX(8px);} 60%{transform:translateX(-6px);} 80%{transform:translateX(4px);}
+  }
+  .tray{display:flex; gap:20px; justify-content:center; align-items:center; padding:10px 0 4px; min-height:104px; width:100%; position:relative;}
+  .drag-tile{
+    width:84px; height:84px; border-radius:20px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; font-size:34px; color:#fff;
+    box-shadow:0 5px 0 rgba(0,0,0,.15);
+    cursor:pointer; touch-action:manipulation; position:relative; z-index:20;
+  }
+  .drag-tile.wrongflash{ animation:shake .4s ease; }
+  .drag-tile.dragging{ box-shadow:0 12px 20px rgba(0,0,0,.35); cursor:grabbing; }
+  .drag-tile.returning{ transition: left .35s cubic-bezier(.34,1.56,.64,1), top .35s cubic-bezier(.34,1.56,.64,1); }
+  .drag-tile.snapping{ transition: left .35s ease, top .35s ease, width .35s ease, height .35s ease, opacity .3s ease .25s; }
+  .drag-tile.fadeout{ opacity:0; transition:opacity .3s ease; }
+  .confetti{
+    position:fixed; pointer-events:none; font-size:22px; z-index:80;
+    animation:confetti-pop .8s ease forwards;
+  }
+  @keyframes confetti-pop{
+    0%{transform:translate(0,0) scale(.4) rotate(0deg); opacity:1;}
+    100%{transform:translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity:0;}
+  }
+
+  /* ---------- BLOBBY THE MASCOT ---------- */
+  .blobby{
+    position:relative; width:96px; height:88px; margin:0 auto;
+    filter:drop-shadow(0 8px 10px rgba(0,0,0,.3));
+    transition:transform .2s ease;
+  }
+  .blobby .body{
+    position:absolute; inset:0;
+    background:linear-gradient(160deg,#8be9fd,#4CD787);
+    border-radius:52% 48% 46% 54% / 60% 58% 42% 40%;
+    animation:blobwobble 3s ease-in-out infinite;
+  }
+  .blobby .eye{
+    position:absolute; top:24px; width:26px; height:26px; background:#fff;
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 -2px 3px rgba(0,0,0,.15);
+  }
+  .blobby .eye.left{left:20px;} .blobby .eye.right{right:20px;}
+  .blobby .pupil{
+    width:11px; height:11px; background:#241645; border-radius:50%;
+    transition:transform .25s ease;
+  }
+  .blobby .mouth{
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    width:24px; height:12px; border-bottom:4px solid #241645; border-radius:0 0 20px 20px;
+    transition:all .2s ease;
+  }
+  .blobby.happy .mouth{ height:18px; width:30px; border-bottom-width:5px; }
+  .blobby.happy{ animation:hop .5s ease; }
+  .blobby.oops{ animation:dizzy .5s ease; }
+  .blobby.oops .mouth{ width:16px; height:8px; border-bottom:none; border-top:4px solid #241645; border-radius:20px 20px 0 0; bottom:16px; }
+  .blobby.talk .mouth{ animation:chatter .25s linear infinite; }
+  @keyframes blobwobble{
+    0%,100%{border-radius:52% 48% 46% 54% / 60% 58% 42% 40%; transform:translateY(0);}
+    50%{border-radius:48% 52% 54% 46% / 58% 60% 40% 42%; transform:translateY(-4px);}
+  }
+  @keyframes hop{0%,100%{transform:translateY(0) scale(1);}30%{transform:translateY(-26px) scale(1.08,.92);}60%{transform:translateY(0) scale(.94,1.06);}}
+  @keyframes dizzy{0%,100%{transform:rotate(0);}25%{transform:rotate(-12deg);}75%{transform:rotate(12deg);}}
+  @keyframes chatter{0%,100%{height:14px;}50%{height:22px;}}
+
+  .play-blobby{ margin-top:4px; position:relative; z-index:5; }
+
+  /* ---------- SILLY WOBBLE / JELLY ---------- */
+  .slot-outline.jelly{ animation:jelly .6s ease; }
+  @keyframes jelly{
+    0%{transform:scale(1,1);} 25%{transform:scale(1.25,.75);}
+    50%{transform:scale(.85,1.15);} 70%{transform:scale(1.08,.92);} 100%{transform:scale(1,1);}
+  }
+  .drag-tile.wiggle{ animation:wiggle 2.4s ease-in-out infinite; }
+  @keyframes wiggle{0%,100%{transform:rotate(-3deg);}50%{transform:rotate(3deg);}}
+
+  /* ---------- TAP-CHOICE MINI-GAMES ---------- */
+  .choice-row{
+    display:flex; gap:16px; justify-content:center; align-items:center;
+    flex-wrap:wrap; width:100%; padding:6px 0;
+  }
+  .choice-tile{
+    width:96px; height:96px; border-radius:22px; border:none;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; font-size:44px; color:#fff;
+    box-shadow:0 6px 0 rgba(0,0,0,.15); text-shadow:0 2px 0 rgba(0,0,0,.15);
+    animation:pop .3s ease backwards;
+    touch-action:manipulation; position:relative; z-index:20;
+  }
+  .choice-tile.emoji{ background:#FFF8EC; font-size:54px; text-shadow:none; }
+  .choice-tile:active{ transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.15); }
+  .choice-tile.wrongflash{ animation:shake .4s ease; }
+  .choice-tile.rightflash{ animation:jelly .6s ease; }
+  .prompt-symbol{
+    font-family:'Baloo 2'; font-weight:800; font-size:clamp(90px,36vw,190px);
+    line-height:1; text-shadow:0 6px 0 rgba(0,0,0,.15); animation:pop .3s ease;
+  }
+  .prompt-emoji{ font-size:clamp(80px,32vw,170px); animation:pop .3s ease; }
+
+  /* ---------- STACK / COUNTING ---------- */
+  .stack-target{
+    font-family:'Baloo 2'; font-weight:800; font-size:clamp(70px,26vw,150px);
+    line-height:1; color:var(--yellow); text-shadow:0 5px 0 rgba(0,0,0,.2);
+    animation:pop .3s ease;
+  }
+  .stack-tower{
+    flex:1; display:flex; flex-direction:column-reverse; align-items:center;
+    justify-content:flex-start; gap:6px; width:100%; overflow:hidden; padding-top:6px;
+  }
+  .block{
+    width:110px; max-width:60vw; height:44px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Baloo 2'; font-weight:800; font-size:24px; color:#fff;
+    text-shadow:0 2px 0 rgba(0,0,0,.2);
+    box-shadow:inset 0 -5px 0 rgba(0,0,0,.18), 0 4px 8px rgba(0,0,0,.25);
+    animation:blockdrop .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes blockdrop{
+    0%{transform:translateY(-140px) scale(1.1,.9); opacity:0;}
+    70%{transform:translateY(6px) scale(.96,1.05);}
+    100%{transform:translateY(0) scale(1,1); opacity:1;}
+  }
+  .stack-tower.topple .block{ animation:topple .8s ease forwards; }
+  @keyframes topple{
+    0%{transform:translate(0,0) rotate(0);}
+    100%{transform:translate(var(--tx,60px), 220px) rotate(var(--tr,90deg)); opacity:0;}
+  }
+  .stack-add-btn{
+    width:120px; height:70px; border-radius:24px; border:none;
+    background:linear-gradient(145deg,var(--green),#7ee6a8); color:#fff;
+    font-family:'Baloo 2'; font-weight:800; font-size:40px;
+    box-shadow:0 7px 0 rgba(0,0,0,.2); margin-bottom:6px;
+  }
+  .stack-add-btn:active{ transform:translateY(4px); box-shadow:0 3px 0 rgba(0,0,0,.2); }
+  .stack-add-btn:disabled{ opacity:.5; }
+
+  .speech-bubble{
+    position:fixed; left:50%; transform:translateX(-50%) scale(0);
+    background:#fff; color:var(--ink); font-family:'Baloo 2'; font-weight:800;
+    padding:12px 20px; border-radius:22px; font-size:20px; z-index:90;
+    box-shadow:0 8px 20px rgba(0,0,0,.3); pointer-events:none; white-space:nowrap;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .speech-bubble.show{ transform:translateX(-50%) scale(1); }
+  .speech-bubble:after{
+    content:''; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%);
+    border:10px solid transparent; border-top-color:#fff; border-bottom:0;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    #home h1 span{animation:none;}
+    .big-symbol, .stars-row span{animation:none;}
+    .slot-zone.shake{animation:none;}
+    .confetti{animation:none; display:none;}
+    .blobby .body{animation:none;} .drag-tile.wiggle{animation:none;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME -->
+  <div class="screen active" id="home">
+    <div class="blobby" id="home-blobby">
+      <div class="body"></div>
+      <div class="eye left"><div class="pupil"></div></div>
+      <div class="eye right"><div class="pupil"></div></div>
+      <div class="mouth"></div>
+    </div>
+    <h1 id="home-title"></h1>
+    <div class="home-btns">
+      <button class="mode-btn" id="btn-abc">ABC<small>letters</small></button>
+      <button class="mode-btn" id="btn-123">123<small>numbers</small></button>
+    </div>
+  </div>
+
+  <!-- PLAY / MATCH (default interactive mode) -->
+  <div class="screen" id="play-screen">
+    <div class="topbar">
+      <button class="iconbtn" id="play-home-btn">🏠</button>
+      <h2 id="play-title">Match the Letter</h2>
+      <button class="toggle-btn" id="play-toggle-btn">👀 Look</button>
+      <div class="progress-pill" id="play-progress-pill">⭐ 0/26</div>
+    </div>
+    <div class="play-area">
+      <p class="instruction" id="play-instruction">Drag the matching one into the outline!</p>
+
+      <!-- DRAG-MATCH layout -->
+      <div id="drag-layout" style="flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:space-between; width:100%;">
+        <div class="slot-zone" id="slot-zone">
+          <div class="slot-outline" id="slot-outline"></div>
+        </div>
+        <div class="blobby play-blobby" id="play-blobby">
+          <div class="body"></div>
+          <div class="eye left"><div class="pupil"></div></div>
+          <div class="eye right"><div class="pupil"></div></div>
+          <div class="mouth"></div>
+        </div>
+        <div class="tray" id="tray"></div>
+      </div>
+
+      <!-- TAP-CHOICE layout -->
+      <div id="tap-layout" style="flex:1; min-height:0; display:none; flex-direction:column; align-items:center; justify-content:space-between; width:100%;">
+        <div class="slot-zone" id="prompt-zone"></div>
+        <div class="blobby play-blobby" id="play-blobby2">
+          <div class="body"></div>
+          <div class="eye left"><div class="pupil"></div></div>
+          <div class="eye right"><div class="pupil"></div></div>
+          <div class="mouth"></div>
+        </div>
+        <div class="choice-row" id="choice-row"></div>
+      </div>
+
+      <!-- STACK / COUNTING layout -->
+      <div id="stack-layout" style="flex:1; min-height:0; display:none; flex-direction:column; align-items:center; justify-content:space-between; width:100%;">
+        <div class="stack-target" id="stack-target">3</div>
+        <div class="stack-tower" id="stack-tower"></div>
+        <button class="stack-add-btn" id="stack-add-btn">＋</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROWSE GRID -->
+  <div class="screen" id="grid-screen">
+    <div class="topbar">
+      <button class="iconbtn" id="grid-home-btn">🏠</button>
+      <h2 id="grid-title">Letters</h2>
+      <button class="toggle-btn" id="grid-toggle-btn">🧩 Match</button>
+      <div class="progress-pill" id="progress-pill">⭐ 0/26</div>
+    </div>
+    <div class="grid-wrap"><div class="tile-grid" id="tile-grid"></div></div>
+  </div>
+
+  <!-- CARD (flashcard, opened from Browse) -->
+  <div class="screen" id="card-screen">
+    <div class="card-top">
+      <button class="iconbtn" id="card-home-btn">🏠</button>
+      <button class="iconbtn" id="card-back-btn">↩︎</button>
+    </div>
+    <div class="big-symbol" id="card-symbol"></div>
+    <div class="word-line" id="card-word"></div>
+    <div class="stars-row" id="card-stars"></div>
+    <div class="card-controls">
+      <button class="nav-arrow" id="prev-btn">‹</button>
+      <button class="speaker-btn" id="speak-btn">🔊</button>
+      <button class="nav-arrow" id="next-btn">›</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Global safety net: if anything throws before/while the app boots, show it
+// instead of a blank white screen.
+window.addEventListener('error', function(ev){
+  try{
+    var b=document.getElementById('__boot_err')||document.createElement('div');
+    b.id='__boot_err';
+    b.style.cssText='position:fixed;inset:0;z-index:99999;background:#241645;color:#fff;font:14px/1.5 -apple-system,sans-serif;padding:24px;overflow:auto;';
+    b.textContent='😅 Oops, something went wrong loading the game.\n\n'+(ev.message||ev.error||'')+'\n\n'+((ev.error&&ev.error.stack)?ev.error.stack:'')+'\n\nPlease screenshot this.';
+    if(!b.parentNode) document.body.appendChild(b);
+  }catch(e){}
+});
+(function(){
+ try {
+  const COLORS = ['#FF6F61','#3DB4F2','#4CD787','#FFC93C','#9B5DE5'];
+
+  const LETTERS = [
+    ['A','Apple','🍎'],['B','Ball','⚽'],['C','Cat','🐱'],['D','Dog','🐶'],
+    ['E','Elephant','🐘'],['F','Fish','🐠'],['G','Grapes','🍇'],['H','House','🏠'],
+    ['I','Ice Cream','🍦'],['J','Juice','🧃'],['K','Kite','🪁'],['L','Lion','🦁'],
+    ['M','Moon','🌙'],['N','Nose','👃'],['O','Orange','🍊'],['P','Pig','🐷'],
+    ['Q','Queen','👑'],['R','Rainbow','🌈'],['S','Sun','☀️'],['T','Train','🚂'],
+    ['U','Umbrella','☂️'],['V','Volcano','🌋'],['W','Watermelon','🍉'],['X','Xylophone','🎹'],
+    ['Y','Yo-yo','🪀'],['Z','Zebra','🦓']
+  ];
+
+  const NUM_WORDS = ['One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten',
+    'Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen','Twenty'];
+  const NUMBERS = NUM_WORDS.map((w,i)=>[String(i+1), w, '⭐']);
+
+  let mode = 'letters';
+  let cardIndex = 0;
+  let playIndex = 0;
+  const visited = { letters:new Set(), numbers:new Set() };
+  const queue = { letters:[], numbers:[] };   // shuffled order of remaining items
+  let gameType = 'drag';                        // 'drag' | 'tap' | 'picture' | 'stack'
+  const GAME_TYPES = { letters:['drag','tap','picture'], numbers:['drag','tap','stack'] };
+  let gameCounter = 0;
+  let skipFirstAsk = false;
+
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+    return arr;
+  }
+  function refillQueue(m){
+    queue[m] = shuffle(dataFor(m).map((_,i)=>i));
+  }
+  function nextTarget(m){
+    if(!queue[m] || queue[m].length===0) refillQueue(m);
+    return queue[m].shift();
+  }
+  // pick n distractor indices different from target
+  function pickOthers(m, targetIdx, n){
+    const data = dataFor(m); const out = [];
+    while(out.length < n){
+      const r = Math.floor(Math.random()*data.length);
+      if(r!==targetIdx && !out.includes(r)) out.push(r);
+    }
+    return out;
+  }
+
+  const $ = id => document.getElementById(id);
+  const screens = { home:$('home'), play:$('play-screen'), grid:$('grid-screen'), card:$('card-screen') };
+  function show(name){
+    Object.values(screens).forEach(s=>s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  $('home-title').innerHTML = "Santi's Sticker Book".split('').map(c=>`<span>${c===' '?'&nbsp;':c}</span>`).join('');
+
+  let audioCtx;
+  function tone(freqStart, freqEnd, dur, vol){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(freqStart, audioCtx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(freqEnd, audioCtx.currentTime + dur);
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + dur);
+    }catch(e){}
+  }
+  const chime = () => tone(660, 990, .25, .15);
+  const successTone = () => { tone(520,780,.18,.16); setTimeout(()=>tone(780,1040,.22,.16),120); };
+  const plunk = () => tone(220,160,.18,.12);
+
+  // ---- Silly noise machine ----
+  function noise(type, freq, dur, vol){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + dur);
+      return o;
+    }catch(e){}
+  }
+  // raspberry / fart-ish: wobbly low square tone
+  function raspberry(){
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type='square'; o.frequency.setValueAtTime(140, audioCtx.currentTime);
+      const t = audioCtx.currentTime;
+      for(let i=0;i<10;i++){ o.frequency.setValueAtTime(90 + (i%2?55:0), t + i*0.035); }
+      g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t+.4);
+      o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(t+.4);
+    }catch(e){}
+  }
+  const boing = () => { tone(200,700,.3,.15); };
+  const burp = () => noise('sawtooth', 90, .35, .13);
+  function sneeze(){ noise('triangle', 500, .12, .08); setTimeout(()=>{ tone(700,180,.35,.15); },130); }
+  function giggle(){ [0,120,240,360].forEach((d,i)=> setTimeout(()=>tone(700+i*80, 900+i*80, .1, .1), d)); }
+  const SILLY = [raspberry, boing, burp, sneeze, giggle];
+  const randomSilly = () => SILLY[Math.floor(Math.random()*SILLY.length)]();
+
+  let voicesReady = false, chosenVoice = null, speechPrimed = false;
+  function loadVoices(){
+    try{
+      const vs = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+      if(vs && vs.length){
+        voicesReady = true;
+        chosenVoice = vs.find(v=>/en[-_]GB/i.test(v.lang)) ||
+                      vs.find(v=>/en[-_]US/i.test(v.lang)) ||
+                      vs.find(v=>/^en/i.test(v.lang)) || vs[0];
+      }
+    }catch(e){}
+  }
+  if('speechSynthesis' in window){
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }
+  // iOS needs a real user gesture to unlock speech. Fire a silent utterance on first touch.
+  function primeSpeech(){
+    if(speechPrimed || !('speechSynthesis' in window)) return;
+    speechPrimed = true;
+    try{
+      loadVoices();
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0; 
+      if(chosenVoice) u.voice = chosenVoice;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+  document.addEventListener('pointerdown', primeSpeech, {once:false});
+
+  function speak(text){
+    try{
+      if(!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.85; u.pitch = 1.35; u.volume = 1;
+      if(chosenVoice) u.voice = chosenVoice;
+      u.onstart = ()=> blobbyTalk(true);
+      u.onend = ()=> blobbyTalk(false);
+      u.onerror = ()=> blobbyTalk(false);
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+  function stopSpeech(){ try{ window.speechSynthesis && window.speechSynthesis.cancel(); }catch(e){} }
+
+  // ---- Blobby the mascot ----
+  function blobbyReact(cls){
+    document.querySelectorAll('.blobby').forEach(b=>{
+      b.classList.remove('happy','oops');
+      void b.offsetWidth;              // restart animation
+      if(cls) b.classList.add(cls);
+      if(cls) setTimeout(()=>b.classList.remove(cls), 600);
+    });
+  }
+  function blobbyTalk(on){
+    document.querySelectorAll('.blobby').forEach(b=> b.classList.toggle('talk', on));
+  }
+  // Googly eyes follow the finger/pointer
+  document.addEventListener('pointermove', (e)=>{
+    document.querySelectorAll('.blobby.active-eyes, .screen.active .blobby').forEach(b=>{
+      const r = b.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      const ang = Math.atan2(e.clientY - cy, e.clientX - cx);
+      const dx = Math.cos(ang)*5, dy = Math.sin(ang)*5;
+      b.querySelectorAll('.pupil').forEach(p=> p.style.transform = `translate(${dx}px,${dy}px)`);
+    });
+  }, {passive:true});
+
+  // ---- Speech bubble ----
+  let bubbleTimer;
+  function sayBubble(text, topPx){
+    const b = document.createElement('div');
+    b.className = 'speech-bubble';
+    b.textContent = text;
+    b.style.top = (topPx || 120) + 'px';
+    document.body.appendChild(b);
+    requestAnimationFrame(()=> b.classList.add('show'));
+    clearTimeout(bubbleTimer);
+    setTimeout(()=>{ b.classList.remove('show'); setTimeout(()=>b.remove(), 350); }, 1600);
+  }
+
+  // ---- Silly voice lines ----
+  const CHEERS = ["Woohoo!","Yippee!","You did it!","Amazing!","Super duper!","Wowzers!","High five!","Boom!","Yay Santi!","Fantastico!"];
+  const OOPS = ["Oopsie!","Try again!","Almost!","Hmm, nope!","Wiggle wiggle, try again!","Silly one!"];
+  const rand = arr => arr[Math.floor(Math.random()*arr.length)];
+
+  // Blobby asks Santi to find the current target
+  function askForTarget(){
+    const data = dataFor(mode);
+    const [sym, word] = data[playIndex];
+    let prompt;
+    if(gameType === 'stack'){
+      const n = Math.min(playIndex+1, 10);
+      const w = NUM_WORDS[n-1] || String(n);
+      prompt = `Let's stack ${w} blocks! Tap the green button!`;
+    } else if(gameType === 'picture'){
+      prompt = mode==='letters'
+        ? `${sym}! Find the ${word}!`
+        : `${word}! Which picture is ${word}?`;
+    } else {
+      prompt = mode==='letters'
+        ? `Where is ${sym}? ${sym} for ${word}.`
+        : `Can you find ${word}?`;
+    }
+    blobbyReact('happy');
+    speak(prompt);
+  }
+
+  function dataFor(m){ return m==='letters' ? LETTERS : NUMBERS; }
+
+  function renderGrid(){
+    const data = dataFor(mode);
+    $('grid-title').textContent = mode==='letters' ? 'Letters' : 'Numbers';
+    const done = visited[mode].size;
+    $('progress-pill').textContent = `⭐ ${done}/${data.length}`;
+    const wrap = $('tile-grid');
+    wrap.innerHTML = '';
+    data.forEach((item, i)=>{
+      const [sym,,emoji] = item;
+      const btn = document.createElement('button');
+      btn.className = 'tile';
+      btn.style.background = COLORS[i % COLORS.length];
+      btn.innerHTML = `${sym}<span class="emoji-corner">${emoji}</span>${visited[mode].has(i) ? '<span class="badge">⭐</span>' : ''}`;
+      btn.onclick = () => { chime(); openCard(i); };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function openCard(i){
+    cardIndex = i;
+    show('card');
+    renderCard();
+  }
+  function renderCard(){
+    const data = dataFor(mode);
+    const [sym, word, emoji] = data[cardIndex];
+    const color = COLORS[cardIndex % COLORS.length];
+    screens.card.style.background = `radial-gradient(circle at 50% 20%, ${color}, ${shade(color)})`;
+    $('card-symbol').textContent = sym;
+    $('card-symbol').style.animation = 'none';
+    requestAnimationFrame(()=>{ $('card-symbol').style.animation = 'pop .3s ease'; });
+
+    if(mode === 'letters'){
+      $('card-word').innerHTML = `${sym} is for ${word} <span class="word-emoji">${emoji}</span>`;
+      $('card-stars').innerHTML = '';
+      speak(`${sym}. ${sym} is for ${word}.`);
+    } else {
+      $('card-word').innerHTML = `${word} <span class="word-emoji">${emoji}</span>`;
+      const n = cardIndex + 1;
+      $('card-stars').innerHTML = Array.from({length:n}).map((_,k)=>
+        `<span style="animation-delay:${k*0.05}s">⭐</span>`).join('');
+      speak(`${Array.from({length:n},(_,k)=>k+1).join(', ')}. ${word}!`);
+    }
+    visited[mode].add(cardIndex);
+  }
+  function shade(hex){
+    const n = parseInt(hex.slice(1),16);
+    const r = Math.max(0,(n>>16)-40), g = Math.max(0,((n>>8)&0xff)-40), b = Math.max(0,(n&0xff)-40);
+    return `rgb(${r},${g},${b})`;
+  }
+  function step(dir){
+    const data = dataFor(mode);
+    cardIndex = (cardIndex + dir + data.length) % data.length;
+    chime();
+    renderCard();
+    if(screens.grid.classList.contains('active')) renderGrid();
+  }
+
+  function renderPlay(){
+    $('play-title').textContent = mode==='letters' ? 'Letters' : 'Numbers';
+    updatePlayProgress();
+    loadRound();
+  }
+  function updatePlayProgress(){
+    const data = dataFor(mode);
+    $('play-progress-pill').textContent = `⭐ ${visited[mode].size}/${data.length}`;
+  }
+
+  function loadRound(){
+    // choose next target from shuffled queue
+    playIndex = nextTarget(mode);
+    // rotate game type (per-mode list)
+    const list = GAME_TYPES[mode];
+    gameType = list[gameCounter % list.length];
+    gameCounter++;
+
+    const dragL = $('drag-layout'), tapL = $('tap-layout'), stackL = $('stack-layout');
+    dragL.style.display = 'none'; tapL.style.display = 'none'; stackL.style.display = 'none';
+
+    if(gameType === 'drag'){
+      dragL.style.display = 'flex';
+      $('play-instruction').textContent = 'Tap the matching one!';
+      loadDragRound();
+    } else if(gameType === 'stack'){
+      stackL.style.display = 'flex';
+      loadStackRound();
+    } else {
+      tapL.style.display = 'flex';
+      loadTapRound();
+    }
+
+    if(skipFirstAsk){ skipFirstAsk = false; }
+    else { setTimeout(askForTarget, 350); }
+  }
+
+  function loadDragRound(){
+    const data = dataFor(mode);
+    const target = data[playIndex];
+    const outline = $('slot-outline');
+    outline.classList.remove('filled');
+    outline.style.color = 'transparent';
+    outline.textContent = target[0];
+
+    const options = shuffle([playIndex, ...pickOthers(mode, playIndex, 2)]);
+    const tray = $('tray');
+    tray.innerHTML = '';
+    options.forEach(idx=>{
+      const tile = document.createElement('div');
+      tile.className = 'drag-tile';
+      tile.textContent = data[idx][0];
+      tile.style.background = COLORS[idx % COLORS.length];
+      tile.dataset.idx = idx;
+      tile.classList.add('wiggle');
+      tile.style.animationDelay = (Math.random()*1.2)+'s';
+      tray.appendChild(tile);
+      makeDraggable(tile);
+    });
+  }
+
+  function loadTapRound(){
+    const data = dataFor(mode);
+    const [sym, word, emoji] = data[playIndex];
+    const zone = $('prompt-zone');
+    const row = $('choice-row');
+    row.innerHTML = '';
+
+    if(gameType === 'tap'){
+      // Blobby asks "Where is X?" — show the big symbol as the prompt, tap matching symbol
+      $('play-instruction').textContent = 'Tap the right one!';
+      zone.innerHTML = `<div class="prompt-symbol" style="color:${COLORS[playIndex%COLORS.length]}">${sym}</div>`;
+      const options = shuffle([playIndex, ...pickOthers(mode, playIndex, 2)]);
+      options.forEach((idx,k)=>{
+        const b = document.createElement('button');
+        b.className = 'choice-tile';
+        b.textContent = data[idx][0];
+        b.style.background = COLORS[idx % COLORS.length];
+        b.style.animationDelay = (k*0.06)+'s';
+        b.onclick = ()=> handleChoice(b, idx);
+        row.appendChild(b);
+      });
+    } else {
+      // picture: show the big symbol, tap the matching picture (emoji)
+      $('play-instruction').textContent = 'Tap the matching picture!';
+      zone.innerHTML = `<div class="prompt-symbol" style="color:${COLORS[playIndex%COLORS.length]}">${sym}</div>`;
+      const others = pickOthers(mode, playIndex, 2);
+      const options = shuffle([playIndex, ...others]);
+      options.forEach((idx,k)=>{
+        const b = document.createElement('button');
+        b.className = 'choice-tile emoji';
+        b.textContent = data[idx][2];
+        b.style.animationDelay = (k*0.06)+'s';
+        b.onclick = ()=> handleChoice(b, idx);
+        row.appendChild(b);
+      });
+    }
+  }
+
+  function handleChoice(btn, idx){
+    if(btn.dataset.locked) return;
+    if(idx === playIndex){
+      // correct
+      btn.dataset.locked = '1';
+      Array.from($('choice-row').children).forEach(c=>c.dataset.locked='1');
+      btn.classList.add('rightflash');
+      successTone(); boing(); giggle();
+      blobbyReact('happy');
+      const r = btn.getBoundingClientRect();
+      burstConfetti(r.left + r.width/2, r.top + r.height/2);
+      sayBubble(rand(CHEERS), r.top - 30);
+      const data = dataFor(mode);
+      const [sym, word] = data[playIndex];
+      if(mode==='letters') speak(`${rand(CHEERS)} ${sym} is for ${word}!`);
+      else speak(`${rand(CHEERS)} That's ${word}!`);
+      visited[mode].add(playIndex);
+      updatePlayProgress();
+      setTimeout(loadRound, 1400);
+    } else {
+      // wrong
+      randomSilly();
+      blobbyReact('oops');
+      btn.classList.add('wrongflash');
+      setTimeout(()=>btn.classList.remove('wrongflash'), 420);
+      const r = btn.getBoundingClientRect();
+      sayBubble(rand(OOPS), r.top - 40);
+      speak(rand(OOPS));
+    }
+  }
+
+  // ---- STACK / COUNTING game ----
+  let stackTarget = 0, stackCount = 0;
+  function loadStackRound(){
+    const n = playIndex + 1;                 // playIndex is 0-based; number = +1
+    stackTarget = Math.min(n, 10);           // cap interactive stacking at 10
+    stackCount = 0;
+    $('play-instruction').textContent = 'Tap ＋ to stack the blocks!';
+    $('stack-target').textContent = stackTarget;
+    const tower = $('stack-tower');
+    tower.classList.remove('topple');
+    tower.innerHTML = '';
+    const btn = $('stack-add-btn');
+    btn.disabled = false;
+  }
+  function addBlock(){
+    if(stackCount >= stackTarget) return;
+    stackCount++;
+    const block = document.createElement('div');
+    block.className = 'block';
+    block.textContent = stackCount;
+    block.style.background = COLORS[(stackCount-1) % COLORS.length];
+    $('stack-tower').appendChild(block);
+    boing();
+    blobbyReact('happy');
+    speak(String(stackCount));                // count out loud
+
+    if(stackCount === stackTarget){
+      $('stack-add-btn').disabled = true;
+      setTimeout(stackWin, 700);
+    }
+  }
+  function stackWin(){
+    successTone(); giggle();
+    blobbyReact('happy');
+    const tower = $('stack-tower');
+    const r = tower.getBoundingClientRect();
+    burstConfetti(r.left + r.width/2, r.top + r.height/2);
+    const word = NUM_WORDS[stackTarget-1] || String(stackTarget);
+    sayBubble(rand(CHEERS), r.top - 10);
+    speak(`${rand(CHEERS)} ${stackTarget}! You stacked ${word} blocks!`);
+    visited[mode].add(playIndex);
+    updatePlayProgress();
+    // give each block a random topple direction, then knock them down
+    setTimeout(()=>{
+      Array.from(tower.children).forEach(b=>{
+        b.style.setProperty('--tx', (Math.random()*160-80)+'px');
+        b.style.setProperty('--tr', (Math.random()*180-90)+'deg');
+      });
+      tower.classList.add('topple');
+      randomSilly();
+    }, 900);
+    setTimeout(loadRound, 2400);
+  }
+
+  // Tap-to-place: reliable on toddler touchscreens (no dragging needed).
+  // Use ONE event type only. pointerup covers touch + mouse on modern iOS/Android;
+  // binding touchend AND click as well caused the tile to fire 2-3 times ("dragging not correct").
+  function makeDraggable(tile){
+    function onTap(e){
+      if(e){ e.preventDefault(); e.stopPropagation(); }
+      if(tile.dataset.locked) return;
+      if(tile.dataset.tapped) return;      // guard against any double-fire
+      tile.dataset.tapped = '1';
+      setTimeout(()=>{ delete tile.dataset.tapped; }, 600);
+      if(Number(tile.dataset.idx) === playIndex){ correctDrop(tile); }
+      else { wrongDrop(tile); }
+    }
+    // Prefer Pointer Events; fall back to touch/click only if unsupported.
+    if(window.PointerEvent){
+      tile.addEventListener('pointerup', onTap);
+    } else {
+      tile.addEventListener('touchend', onTap, {passive:false});
+      tile.addEventListener('click', onTap);
+    }
+  }
+
+  function wrongDrop(tile){
+    randomSilly();
+    blobbyReact('oops');
+    tile.classList.remove('wiggle');
+    tile.classList.add('wrongflash');
+    setTimeout(()=>tile.classList.remove('wrongflash'), 420);
+    const zone = $('slot-zone');
+    zone.classList.add('shake');
+    setTimeout(()=>zone.classList.remove('shake'), 400);
+    const r = tile.getBoundingClientRect();
+    sayBubble(rand(OOPS), r.top - 50);
+    speak(rand(OOPS));
+  }
+
+  function correctDrop(tile){
+    tile.dataset.locked = '1';
+    tile.classList.remove('wiggle');
+    const outline = $('slot-outline');
+    const or = outline.getBoundingClientRect();
+    const tr = tile.getBoundingClientRect();
+
+    // Fly the tile from its spot up into the outline
+    tile.style.position = 'fixed';
+    tile.style.left = tr.left + 'px';
+    tile.style.top = tr.top + 'px';
+    tile.style.width = tr.width + 'px';
+    tile.style.height = tr.height + 'px';
+    tile.style.margin = '0';
+    tile.style.zIndex = '100';
+    tile.classList.add('snapping');
+    requestAnimationFrame(()=>{
+      tile.style.left = (or.left + or.width/2 - or.width*0.28) + 'px';
+      tile.style.top = or.top + 'px';
+      tile.style.width = (or.width*0.56) + 'px';
+      tile.style.height = or.height + 'px';
+      tile.style.background = 'transparent';
+      tile.style.color = 'transparent';
+    });
+
+    successTone();
+    boing();
+    giggle();
+    blobbyReact('happy');
+    burstConfetti(or.left + or.width/2, or.top + or.height/2);
+    sayBubble(rand(CHEERS), or.top - 30);
+
+    const fillColor = COLORS[playIndex % COLORS.length];
+    setTimeout(()=>{
+      outline.style.color = fillColor;
+      outline.classList.add('filled');
+      outline.classList.add('jelly');
+      setTimeout(()=>outline.classList.remove('jelly'), 620);
+    }, 200);
+
+    Array.from($('tray').children).forEach(t=>{
+      if(t !== tile){ t.classList.add('fadeout'); t.dataset.locked='1'; }
+    });
+
+    visited[mode].add(playIndex);
+    updatePlayProgress();
+
+    const data = dataFor(mode);
+    const [sym, word] = data[playIndex];
+    if(mode==='letters') speak(`${rand(CHEERS)} ${sym} is for ${word}!`);
+    else speak(`${rand(CHEERS)} That's ${word}!`);
+
+    setTimeout(()=>{
+      loadRound();
+    }, 1400);
+  }
+
+  function burstConfetti(x,y){
+    const symbols = ['⭐','🎉','✨','🤪','🎈','🍭','🦄','💩','🎊','🥳'];
+    for(let i=0;i<14;i++){
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      el.textContent = symbols[i % symbols.length];
+      const angle = Math.random()*Math.PI*2;
+      const dist = 60 + Math.random()*70;
+      el.style.left = x+'px'; el.style.top = y+'px';
+      el.style.setProperty('--dx', Math.cos(angle)*dist+'px');
+      el.style.setProperty('--dy', Math.sin(angle)*dist+'px');
+      el.style.setProperty('--rot', (Math.random()*360-180)+'deg');
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 850);
+    }
+  }
+
+  $('btn-abc').onclick = ()=>{ primeSpeech(); boing(); blobbyReact('happy'); mode='letters'; gameCounter=0; refillQueue('letters'); skipFirstAsk=true; show('play'); renderPlay(); askForTarget(); };
+  $('btn-123').onclick = ()=>{ primeSpeech(); boing(); blobbyReact('happy'); mode='numbers'; gameCounter=0; refillQueue('numbers'); skipFirstAsk=true; show('play'); renderPlay(); askForTarget(); };
+
+  // Tap Blobby: on play screen he repeats the question, elsewhere he giggles
+  document.querySelectorAll('.blobby').forEach(b=>{
+    b.addEventListener('pointerdown', (e)=>{
+      e.stopPropagation();
+      blobbyReact('happy');
+      if((b.id === 'play-blobby' || b.id === 'play-blobby2') && screens.play.classList.contains('active')){
+        askForTarget();
+      } else {
+        randomSilly();
+        const r = b.getBoundingClientRect();
+        sayBubble(rand(['Hehe!','Boop!','Hi Santi!','Tee hee!','Squish!']), r.top - 40);
+      }
+    });
+  });
+
+  $('play-home-btn').onclick = ()=>{ stopSpeech(); show('home'); };
+  $('stack-add-btn').onclick = ()=> addBlock();
+  $('grid-home-btn').onclick = ()=>{ stopSpeech(); show('home'); };
+  $('card-home-btn').onclick = ()=>{ stopSpeech(); show('home'); };
+  $('card-back-btn').onclick = ()=>{ stopSpeech(); renderGrid(); show('grid'); };
+
+  $('play-toggle-btn').onclick = ()=>{ chime(); renderGrid(); show('grid'); };
+  $('grid-toggle-btn').onclick = ()=>{ chime(); show('play'); renderPlay(); };
+
+  $('prev-btn').onclick = ()=> step(-1);
+  $('next-btn').onclick = ()=> step(1);
+  $('speak-btn').onclick = ()=>{
+    const data = dataFor(mode);
+    const [sym, word] = data[cardIndex];
+    boing();
+    if(mode==='letters') speak(`${sym}. ${sym} is for ${word}.`);
+    else speak(`${Array.from({length:cardIndex+1},(_,k)=>k+1).join(', ')}. ${word}!`);
+  };
+ } catch(bootErr){
+   var b=document.getElementById('__boot_err')||document.createElement('div');
+   b.id='__boot_err';
+   b.style.cssText='position:fixed;inset:0;z-index:99999;background:#241645;color:#fff;font:14px/1.5 -apple-system,sans-serif;padding:24px;overflow:auto;';
+   b.textContent='😅 Oops, the game could not start.\n\n'+(bootErr&&bootErr.message?bootErr.message:bootErr)+'\n\n'+(bootErr&&bootErr.stack?bootErr.stack:'')+'\n\nPlease screenshot this and send it.';
+   if(!b.parentNode) document.body.appendChild(b);
+ }
+})();
+</script>
+</body>
+</html>
